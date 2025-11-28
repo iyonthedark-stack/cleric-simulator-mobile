@@ -2,73 +2,111 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Cleric Mobile v7 (UI Re-Scale & Control Fix)</title>
+    <title>Cleric Mobile v18 (Optimized for iPhone Landscape)</title>
     <style>
         /* CORE RESET & MOBILE BASICS */
-        body { margin: 0; padding: 0; background-color: #050505; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+        body {
+            margin: 0; padding: 0; background-color: #050505; color: white;
+            font-family: 'Segoe UI', sans-serif; overflow: hidden;
+            touch-action: none; user-select: none; -webkit-user-select: none;
+        }
         #game-container { position: relative; width: 100vw; height: 100vh; background: #111; overflow: hidden; }
         canvas { display: block; width: 100%; height: 100%; }
 
         /* LANDSCAPE ENFORCEMENT */
-        #rotate-message { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 999; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
-        
+        #rotate-message {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 999; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+        }
         @media screen and (orientation: portrait) {
-            #rotate-message { display: flex;
-                font-size: 0.8em; 
-            }
+            #rotate-message { display: flex; font-size: 0.8em; }
         }
 
         /* UI OVERLAYS */
         .ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        
+
         /* TOP BAR (Resources) */
-        .top-bar { position: absolute; top: 0; left: 0; width: 100%; height: 40px; background: linear-gradient(180deg, rgba(0,0,0,0.8), rgba(0,0,0,0)); display: flex; justify-content: space-between; align-items: center; padding: 0 10px; box-sizing: border-box; z-index: 10; }
-        .res-cluster { display: flex; flex-direction: column; width: 35%; }
-        .bar-bg { width: 100%; height: 6px; background: #333; margin-bottom: 2px; border-radius: 3px; overflow: hidden; border: 1px solid #444; }
+        .top-bar {
+            position: absolute; top: 0; left: 0; width: 100%; height: 42px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.85), rgba(0,0,0,0));
+            display: flex; justify-content: space-between; align-items: center; padding: 0 10px;
+            box-sizing: border-box; z-index: 10;
+        }
+        .res-cluster { display: flex; flex-direction: column; width: 36%; }
+        .bar-bg {
+            width: 100%; height: 6px; background: #333; margin-bottom: 3px; border-radius: 3px;
+            overflow: hidden; border: 1px solid #444;
+        }
         .bar-fill { height: 100%; transition: width 0.1s; }
         #hp-bar .bar-fill { background: #ff4444; }
         #ap-bar .bar-fill { background: #ffd700; }
         #stam-bar .bar-fill { background: #4caf50; }
         #div-bar .bar-fill { background: #00bfff; }
-        .res-label { font-size: 8px; font-weight: bold; text-shadow: 1px 1px 1px black; margin-bottom: 1px; }
+        .res-label { font-size: 9px; font-weight: bold; text-shadow: 1px 1px 1px black; margin-bottom: 2px; }
         .score-box { text-align: center; font-size: 14px; color: gold; font-weight: bold; text-shadow: 0 2px 4px black; }
-        
-        /* JOYSTICKS (SHRUNK & MOVED UP/AWAY) */
-        .joystick-zone { position: absolute; width: 100px; height: 100px; pointer-events: auto; z-index: 20; }
-        #stick-left-zone { left: 10px; bottom: 30px; } /* Moved up */
-        #stick-right-zone { right: 120px; bottom: 30px; pointer-events: none; } /* Moved up and left */
-        
-        .joystick-base { width: 70px; height: 70px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center; }
-        .joystick-stick { width: 30px; height: 30px; background: rgba(255, 255, 255, 0.3); border-radius: 50%; position: absolute; box-shadow: 0 0 10px rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
 
-        /* BUTTONS (SHRUNK & TIGHTLY PACKED) */
-        #skill-cluster { position: absolute; bottom: 10px; right: 10px; width: 180px; height: 180px; pointer-events: none; }
-        .btn { pointer-events: auto; position: absolute; border-radius: 50%; background: #222; border: 2px solid #555; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 9px; touch-action: manipulation; box-shadow: 0 4px 6px rgba(0,0,0,0.4); transition: transform 0.1s; }
+        /* JOYSTICKS */
+        .joystick-zone { position: absolute; width: 100px; height: 100px; pointer-events: auto; z-index: 20; }
+        #stick-left-zone { left: 12px; bottom: 32px; }
+        /* Moved above buttons: top-right thumb reach without overlap */
+        #stick-right-zone { right: 20px; bottom: 140px; pointer-events: auto; }
+
+        .joystick-base {
+            width: 70px; height: 70px; background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 50%;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            display: flex; justify-content: center; align-items: center;
+        }
+        .joystick-stick {
+            width: 30px; height: 30px; background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%; position: absolute; box-shadow: 0 0 10px rgba(0,0,0,0.5); backdrop-filter: blur(2px);
+        }
+
+        /* BUTTONS */
+        #skill-cluster { position: absolute; bottom: 10px; right: 10px; width: 200px; height: 200px; pointer-events: none; }
+        .btn {
+            pointer-events: auto; position: absolute; border-radius: 50%; background: #222; border: 2px solid #555;
+            display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 10px;
+            touch-action: manipulation; box-shadow: 0 4px 6px rgba(0,0,0,0.4); transition: transform 0.1s;
+        }
         .btn:active { transform: scale(0.9) !important; border-color: white; background: #444; }
-        .btn-cd-overlay { position: absolute; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #ff4444; font-size: 9px; }
-        
-        .btn-main { width: 45px; height: 45px; } /* Shrunk */
-        .btn-sub { width: 40px; height: 40px; } /* Shrunk */
-        .btn-mini { width: 30px; height: 30px; } /* Shrunk */
-        
-        #btn-dodge { width: 50px; height: 50px; bottom: 15px; right: 15px; background: #333; border-color: #999; z-index: 25; font-size: 8px; }
-        #btn-lmb { bottom: 65px; right: 10px; background: #1a3a1a; color: #39FFAC; } 
-        #btn-rmb { bottom: 10px; right: 75px; background: #3a3a1a; color: #ffd700; } 
-        #btn-q { bottom: 105px; right: 5px; background: #2d1515; color: #ff8888; }
-        #btn-e { bottom: 90px; right: 55px; background: #2d1515; color: #ff8888; }
-        #btn-r { bottom: 50px; right: 100px; background: #2d1515; color: #ff8888; }
-        #btn-tab { bottom: 125px; right: 90px; background: #001a33; color: #00bfff; } 
-        #btn-daily { width: 40px; height: 40px; bottom: 70px; right: 135px; background: #333300; border: 2px solid gold; color: gold; position: absolute; pointer-events: auto; z-index: 50; box-shadow: 0 0 15px rgba(255, 215, 0, 0.2); }
-        
+        .btn-cd-overlay {
+            position: absolute; top:0; left:0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            color: #ff4444; font-size: 10px;
+        }
+
+        .btn-main { width: 46px; height: 46px; }
+        .btn-sub { width: 40px; height: 40px; }
+        .btn-mini { width: 30px; height: 30px; }
+
+        /* Slightly increased spacing to reduce mis-taps */
+        #btn-dodge { width: 52px; height: 52px; bottom: 18px; right: 18px; background: #333; border-color: #999; z-index: 25; font-size: 9px; }
+        #btn-lmb { bottom: 70px; right: 14px; background: #1a3a1a; color: #39FFAC; }
+        #btn-rmb { bottom: 14px; right: 84px; background: #3a3a1a; color: #ffd700; }
+        #btn-q   { bottom: 110px; right: 10px; background: #2d1515; color: #ff8888; }
+        #btn-e   { bottom: 92px; right: 60px; background: #2d1515; color: #ff8888; }
+        #btn-r   { bottom: 52px; right: 110px; background: #2d1515; color: #ff8888; }
+        #btn-tab { bottom: 130px; right: 96px; background: #001a33; color: #00bfff; }
+        #btn-daily {
+            width: 40px; height: 40px; bottom: 74px; right: 145px;
+            background: #333300; border: 2px solid gold; color: gold; position: absolute; pointer-events: auto;
+            z-index: 50; box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+        }
+
         /* MENUS */
-        #menu-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; pointer-events: auto; backdrop-filter: blur(5px); }
+        #menu-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9);
+            display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; pointer-events: auto; backdrop-filter: blur(5px);
+        }
         .menu-btn { padding: 12px 30px; background: #3498db; color: white; border: none; font-size: 18px; border-radius: 8px; margin: 10px; font-weight: bold; box-shadow: 0 4px #1b5e8a; }
-        
+
         /* TOGGLE */
-        .toggle-container { position: absolute; top: 5px; right: 10px; pointer-events: auto; z-index: 50; }
-        .toggle-btn { background: #222; color: #888; border: 1px solid #444; padding: 4px 8px; font-size: 10px; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px; }
+        .toggle-container { position: absolute; top: 6px; right: 10px; pointer-events: auto; z-index: 50; }
+        .toggle-btn { background: #222; color: #ccc; border: 1px solid #444; padding: 5px 10px; font-size: 11px; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px; }
         .toggle-btn.active { background: #ff5722; color: white; border-color: #fff; box-shadow: 0 0 8px #ff5722; }
     </style>
 </head>
@@ -102,23 +140,28 @@
     </div>
 
     <div class="ui-layer">
-        
         <div class="toggle-container">
-            <button id="toggle-autoattack" class="toggle-btn" onclick="toggleAutoAttack()">Auto-Attack: OFF</button>
+            <button id="toggle-autoattack" class="toggle-btn active" onclick="toggleAutoAttack()">Auto-Attack: ON</button>
         </div>
 
-        <div id="stick-left-zone" class="joystick-zone"><div class="joystick-base"><div class="joystick-stick" id="stick-left"></div></div></div>
-        <div id="stick-right-zone" class="joystick-zone"><div class="joystick-base" style="opacity: 0.3"><div class="joystick-stick" id="stick-right"></div></div></div>
+        <!-- Joysticks -->
+        <div id="stick-left-zone" class="joystick-zone">
+            <div class="joystick-base"><div class="joystick-stick" id="stick-left"></div></div>
+        </div>
+        <div id="stick-right-zone" class="joystick-zone">
+            <div class="joystick-base" style="opacity: 0.35"><div class="joystick-stick" id="stick-right"></div></div>
+        </div>
 
+        <!-- Skill cluster -->
         <div id="skill-cluster">
             <div id="btn-daily" class="btn btn-sub" ontouchstart="handleTouch('1', true, event)" ontouchend="handleTouch('1', false, event)">ULT<div class="btn-cd-overlay" id="cd-daily" style="display:none;"></div></div>
-            
+
             <div id="btn-dodge" class="btn" ontouchstart="handleTouch('shift', true, event)" ontouchend="handleTouch('shift', false, event)">DASH</div>
             <div id="btn-lmb" class="btn btn-main" ontouchstart="handleTouch('lmb', true, event)" ontouchend="handleTouch('lmb', false, event)">🔥</div>
             <div id="btn-rmb" class="btn btn-main" ontouchstart="handleTouch('rmb', true, event)" ontouchend="handleTouch('rmb', false, event)">🔦</div>
-            <div id="btn-q" class="btn btn-sub" ontouchstart="handleTouch('q', true, event)" ontouchend="handleTouch('q', false, event)">⚡<div class="btn-cd-overlay" id="cd-q" style="display:none;"></div></div>
-            <div id="btn-e" class="btn btn-sub" ontouchstart="handleTouch('e', true, event)" ontouchend="handleTouch('e', false, event)">💥<div class="btn-cd-overlay" id="cd-e" style="display:none;"></div></div>
-            <div id="btn-r" class="btn btn-sub" ontouchstart="handleTouch('r', true, event)" ontouchend="handleTouch('r', false, event)">➕<div class="btn-cd-overlay" id="cd-r" style="display:none;"></div></div>
+            <div id="btn-q" class="btn btn-sub" ontouchstart="handleTouch('q', true, event)"  ontouchend="handleTouch('q', false, event)">⚡<div class="btn-cd-overlay" id="cd-q" style="display:none;"></div></div>
+            <div id="btn-e" class="btn btn-sub" ontouchstart="handleTouch('e', true, event)"  ontouchend="handleTouch('e', false, event)">💥<div class="btn-cd-overlay" id="cd-e" style="display:none;"></div></div>
+            <div id="btn-r" class="btn btn-sub" ontouchstart="handleTouch('r', true, event)"  ontouchend="handleTouch('r', false, event)">➕<div class="btn-cd-overlay" id="cd-r" style="display:none;"></div></div>
             <div id="btn-tab" class="btn btn-mini" ontouchstart="handleTouch('tab', true, event)" ontouchend="handleTouch('tab', false, event)">⚖️</div>
         </div>
     </div>
@@ -126,7 +169,7 @@
     <div id="menu-overlay">
         <h1 id="menu-title" style="color: #ffd700; font-size: 28px; margin-bottom: 10px; text-shadow: 0 0 10px orange;">CLERIC MOBILE</h1>
         <p id="menu-msg" style="color: #ddd; margin-bottom: 20px; font-size: 14px;">Survive for 2 Minutes.</p>
-        <button class="menu-btn" ontouchstart="startGame(event)" onclick="startGame(event)">START</button> 
+        <button class="menu-btn" ontouchstart="startGame(event)" onclick="startGame(event)">START</button>
         <div style="margin-top:20px; font-size: 11px; color: #666; text-align: center; line-height: 1.6;">
             Left Stick: Move<br>Right Area: Aim<br>
             Use Landscape Mode!
@@ -142,13 +185,13 @@ const WORLD_W = 1200;
 const WORLD_H = 1200;
 const GAME_CENTER_X = WORLD_W / 2;
 const GAME_CENTER_Y = WORLD_H / 2;
-const NODE_RADIUS = 350; 
+const NODE_RADIUS = 350;
 const GRID_SIZE = 100;
 const FPS = 60;
-const GAME_END_FRAME = 120 * FPS; 
+const GAME_END_FRAME = 120 * FPS; // 2 min
 
 // Stats
-const PLAYER_SPEED = 7; 
+const PLAYER_SPEED = 7;
 const MAX_HP = 2000;
 const MAX_STAMINA = 100;
 const MAX_DIVINITY = 1000;
@@ -178,15 +221,15 @@ let scaleFactor = 1;
 function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    
-    // AGGRESSIVE SCALING FIX (v6 logic)
-    let calculatedScale = canvas.width / WORLD_W; 
-    scaleFactor = Math.min(0.6, Math.max(0.3, calculatedScale));
-    
+
+    // Tighter scaling for iPhone landscape
+    let calculatedScale = canvas.width / WORLD_W;
+    scaleFactor = Math.min(0.45, Math.max(0.25, calculatedScale));
+
     const currentAspect = canvas.width / canvas.height;
-    if (currentAspect > 2.0) { 
-        const VIRTUAL_HEIGHT = 600; 
-        scaleFactor = Math.min(0.6, Math.max(0.3, canvas.height / VIRTUAL_HEIGHT));
+    if (currentAspect > 2.0) {
+        const VIRTUAL_HEIGHT = 500;
+        scaleFactor = Math.min(0.45, Math.max(0.25, canvas.height / VIRTUAL_HEIGHT));
     }
 }
 window.addEventListener('resize', resize);
@@ -195,35 +238,35 @@ resize();
 const joyLeft = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 };
 const joyRight = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 };
 const keys = { lmb: false, rmb: false, shift: false, q: false, e: false, r: false, tab: false, '1': false };
-let autoAttack = false; // Renamed from autoFire
-let vMouse = { x: GAME_CENTER_X, y: GAME_CENTER_Y - 200 }; 
+let autoAttack = true; // Default ON for mobile
+let vMouse = { x: GAME_CENTER_X, y: GAME_CENTER_Y - 200 };
 
-function toggleAutoAttack() { // Updated function name
+function toggleAutoAttack() {
     autoAttack = !autoAttack;
     const btn = document.getElementById('toggle-autoattack');
     btn.innerText = `Auto-Attack: ${autoAttack ? 'ON' : 'OFF'}`;
     btn.classList.toggle('active', autoAttack);
 }
 
-function handleTouch(key, state, event) { 
-    if (event) event.preventDefault(); 
-    keys[key] = state; 
+function handleTouch(key, state, event) {
+    if (event) event.preventDefault();
+    keys[key] = state;
 }
 
-// Touch Logic (Passive:false allows preventDefault)
+/* Touch Logic (Passive:false allows preventDefault) */
 document.addEventListener('touchstart', e => {
     for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
-        
-        // Left Stick (bottom half, left side)
+
+        // Left Stick (left half, lower half)
         if (t.clientX < window.innerWidth / 2 && t.clientY > window.innerHeight / 2) {
             if (!joyLeft.active) {
                 joyLeft.id = t.identifier; joyLeft.active = true;
                 joyLeft.originX = t.clientX; joyLeft.originY = t.clientY;
                 updateJoyVisual('left', 0, 0);
             }
-        // Right Stick Area (right side, excluding buttons which have their own handlers)
-        } else if (t.clientX > window.innerWidth / 2 && t.clientY < window.innerHeight / 2) {
+        // Right Stick Area (right half, upper area above buttons)
+        } else if (t.clientX > window.innerWidth / 2) {
             if (!joyRight.active) {
                 joyRight.id = t.identifier; joyRight.active = true;
                 joyRight.originX = t.clientX; joyRight.originY = t.clientY;
@@ -234,26 +277,28 @@ document.addEventListener('touchstart', e => {
 }, {passive: false});
 
 document.addEventListener('touchmove', e => {
-    e.preventDefault(); 
+    e.preventDefault();
     for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
-        const STICK_MAX_DIST = 35; // Adjusted max dist for smaller stick visuals
+        const STICK_MAX_DIST = 30; // tighter thumb radius
 
         if (t.identifier === joyLeft.id) {
             const dx = t.clientX - joyLeft.originX; const dy = t.clientY - joyLeft.originY;
             const dist = Math.min(STICK_MAX_DIST, Math.sqrt(dx*dx + dy*dy));
             const angle = Math.atan2(dy, dx);
-            joyLeft.x = Math.cos(angle) * (dist / STICK_MAX_DIST); joyLeft.y = Math.sin(angle) * (dist / STICK_MAX_DIST);
+            joyLeft.x = Math.cos(angle) * (dist / STICK_MAX_DIST);
+            joyLeft.y = Math.sin(angle) * (dist / STICK_MAX_DIST);
             updateJoyVisual('left', Math.cos(angle)*dist, Math.sin(angle)*dist);
         }
         if (t.identifier === joyRight.id) {
             const dx = t.clientX - joyRight.originX; const dy = t.clientY - joyRight.originY;
             const dist = Math.min(STICK_MAX_DIST, Math.sqrt(dx*dx + dy*dy));
             const angle = Math.atan2(dy, dx);
-            joyRight.x = Math.cos(angle) * (dist / STICK_MAX_DIST); joyRight.y = Math.sin(angle) * (dist / STICK_MAX_DIST);
-            
-            if (dist > 5 && player) {
-                const aimReach = 450; 
+            joyRight.x = Math.cos(angle) * (dist / STICK_MAX_DIST);
+            joyRight.y = Math.sin(angle) * (dist / STICK_MAX_DIST);
+
+            if (dist > 4 && player) {
+                const aimReach = 450;
                 if (Math.abs(joyRight.x) > 0.1 || Math.abs(joyRight.y) > 0.1) {
                     const dir = new Vector(joyRight.x, joyRight.y).normalize();
                     vMouse.x = player.pos.x + dir.x * aimReach;
@@ -268,18 +313,18 @@ document.addEventListener('touchmove', e => {
 document.addEventListener('touchend', e => {
     for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
-        if (t.identifier === joyLeft.id) { 
-            joyLeft.active = false; joyLeft.x = 0; joyLeft.y = 0; updateJoyVisual('left', 0, 0); 
+        if (t.identifier === joyLeft.id) {
+            joyLeft.active = false; joyLeft.x = 0; joyLeft.y = 0; updateJoyVisual('left', 0, 0);
         }
-        if (t.identifier === joyRight.id) { 
-            joyRight.active = false; joyRight.x = 0; joyRight.y = 0; updateJoyVisual('right', 0, 0); 
+        if (t.identifier === joyRight.id) {
+            joyRight.active = false; joyRight.x = 0; joyRight.y = 0; updateJoyVisual('right', 0, 0);
         }
     }
 });
 
 function updateJoyVisual(side, x, y) {
     const el = document.getElementById(`stick-${side}`);
-    if(el) el.style.transform = `translate(${x}px, ${y}px)`;
+    if (el) el.style.transform = `translate(${x}px, ${y}px)`;
 }
 
 /* ================================
@@ -320,7 +365,7 @@ class Player extends Entity {
         this.isCasting = false; this.castTimer = 0; this.castCb = null;
         this.slowTimer = 0; this.poisonTimer = 0; this.hotTimer = 0;
         this.exhausted = false;
-        this.dodgeDir = new Vector(0, -1); 
+        this.dodgeDir = new Vector(0, -1);
     }
     update() {
         if (!this.isDodging) this.stamina = Math.min(MAX_STAMINA, this.stamina + STAMINA_REGEN);
@@ -345,21 +390,21 @@ class Player extends Entity {
         if (this.isCasting) {
             this.castTimer--;
             if (this.castTimer <= 0) { if (this.castCb) this.castCb(); this.isCasting = false; }
-            return; 
+            return;
         }
 
         let speed = PLAYER_SPEED;
         if (this.exhausted || this.slowTimer > 0) speed *= 0.5;
-        // Check for RMB or Auto-Attack before applying slow
-        if (keys.rmb || autoAttack) speed *= SKILL_STATS.LANCE_OF_FAITH.slow; 
+        // Lance of Faith slow while active or auto-firing
+        if (keys.rmb || autoAttack) speed *= SKILL_STATS.LANCE_OF_FAITH.slow;
 
         if (this.isDodging) {
             this.dodgeTimer--;
             if(this.dodgeTimer<=0) this.isDodging = false;
             if (this.dodgeDir && this.dodgeDir.mag() > 0) {
-                this.pos = this.pos.add(this.dodgeDir.mult(14)); 
+                this.pos = this.pos.add(this.dodgeDir.mult(14));
             } else {
-                 this.isDodging = false; 
+                 this.isDodging = false;
             }
         } else if (!keys.tab) {
             if (Math.abs(joyLeft.x) > 0.1 || Math.abs(joyLeft.y) > 0.1) {
@@ -378,17 +423,13 @@ class Player extends Entity {
         this.stamina -= 20;
         this.isDodging = true;
         this.dodgeTimer = 12;
-        
+
         if (Math.abs(joyLeft.x) > 0.1 || Math.abs(joyLeft.y) > 0.1) {
             this.dodgeDir = new Vector(joyLeft.x, joyLeft.y).normalize();
         } else {
             let aimDir = vMouse.sub(this.pos);
-            
-            if (aimDir.mag() < 1) {
-                this.dodgeDir = this.dodgeDir.mult(-1).normalize(); 
-            } else {
-                this.dodgeDir = aimDir.normalize().mult(-1);
-            }
+            if (aimDir.mag() < 1) this.dodgeDir = this.dodgeDir.mult(-1).normalize();
+            else this.dodgeDir = aimDir.normalize().mult(-1);
         }
     }
 }
@@ -407,10 +448,10 @@ let score = 0;
 let kills = 0;
 
 function startGame(e) {
-    if (e) e.preventDefault(); 
+    if (e) e.preventDefault();
     document.getElementById('menu-overlay').style.display = 'none';
     player = new Player();
-    vMouse = { x: player.pos.x, y: player.pos.y - 300 }; 
+    vMouse = { x: player.pos.x, y: player.pos.y - 300 };
     enemies = [];
     projectiles = [];
     splats = [];
@@ -431,7 +472,6 @@ function spawnMob() {
         y = Math.random() * WORLD_H;
         d = new Vector(x,y).sub(new Vector(GAME_CENTER_X, GAME_CENTER_Y)).mag();
     } while(d < NODE_RADIUS + 50);
-    
     enemies.push(new Enemy(x, y, type));
 }
 
@@ -439,12 +479,13 @@ function showFloat(txt, pos, col) {
     floats.push({txt:txt, pos:new Vector(pos.x, pos.y), col:col, life:60});
 }
 
+/* Auto-fire both at-wills when enabled */
 function castSkills() {
     if (player.isCasting || player.isDodging || keys.tab) return;
     if (keys.shift) player.dodge();
 
-    // Sacred Flame (LMB) logic
-    const isLMBActive = keys.lmb || (autoAttack && joyRight.active);
+    // Sacred Flame (LMB)
+    const isLMBActive = keys.lmb || autoAttack;
     if (isLMBActive && frame % SKILL_STATS.SACRED_FLAME.frames === 0) {
         let dir = vMouse.sub(player.pos);
         projectiles.push({
@@ -452,14 +493,13 @@ function castSkills() {
             vel: dir.normalize().mult(SKILL_STATS.SACRED_FLAME.speed),
             dmg: SKILL_STATS.SACRED_FLAME.damage, owner: 'player', life: 60, r: 8, col: SKILL_STATS.SACRED_FLAME.color
         });
-        player.ap = Math.min(MAX_AP, player.ap + 5);
+        player.ap = Math.min(MAX_AP, player.ap + SKILL_STATS.SACRED_FLAME.ap);
     }
-    
-    // Lance of Faith (RMB) logic
-    const isRMBActive = keys.rmb || (autoAttack && joyRight.active);
+
+    // Lance of Faith (RMB)
+    const isRMBActive = keys.rmb || autoAttack;
     if (isRMBActive && frame % SKILL_STATS.LANCE_OF_FAITH.tick === 0) {
         let aimDir = vMouse.sub(player.pos);
-        let hit = false;
         enemies.forEach(e => {
             let toE = e.pos.sub(player.pos);
             let angle = Math.abs(Math.atan2(aimDir.y, aimDir.x) - Math.atan2(toE.y, toE.x));
@@ -467,12 +507,12 @@ function castSkills() {
                 e.hp -= SKILL_STATS.LANCE_OF_FAITH.damage;
                 showFloat(SKILL_STATS.LANCE_OF_FAITH.damage, e.pos, '#ff0');
                 if(e.hp<=0) kill(e);
-                hit = true;
+                player.ap = Math.min(MAX_AP, player.ap + SKILL_STATS.LANCE_OF_FAITH.ap);
             }
         });
-        if(hit) player.ap = Math.min(MAX_AP, player.ap + 10);
     }
 
+    // Q: Daunting Light
     if (keys.q && player.cooldowns.q <= 0 && player.divinity >= SKILL_STATS.DAUNTING_LIGHT.div) {
         player.divinity -= SKILL_STATS.DAUNTING_LIGHT.div;
         player.cooldowns.q = player.maxCd.q;
@@ -486,12 +526,13 @@ function castSkills() {
                     e.hp -= SKILL_STATS.DAUNTING_LIGHT.damage;
                     showFloat(SKILL_STATS.DAUNTING_LIGHT.damage+"!", e.pos, '#ff0');
                     if(e.hp<=0) kill(e);
-                    player.ap = Math.min(MAX_AP, player.ap + 30);
+                    player.ap = Math.min(MAX_AP, player.ap + SKILL_STATS.DAUNTING_LIGHT.ap);
                 }
             });
         };
     }
 
+    // E: Sunburst
     if (keys.e && player.cooldowns.e <= 0) {
         player.cooldowns.e = player.maxCd.e;
         player.hp = Math.min(MAX_HP, player.hp + SKILL_STATS.SUNBURST.heal);
@@ -506,6 +547,7 @@ function castSkills() {
         });
     }
 
+    // R: Bastion
     if (keys.r && player.cooldowns.r <= 0 && player.divinity >= SKILL_STATS.BASTION.div) {
         player.divinity -= SKILL_STATS.BASTION.div;
         player.cooldowns.r = player.maxCd.r;
@@ -520,22 +562,23 @@ function castSkills() {
             }
         };
     }
-    
+
+    // Daily (1)
     if (keys['1'] && player.cooldowns.daily <= 0 && player.ap >= MAX_AP) {
         player.ap = 0;
         player.cooldowns.daily = player.maxCd.daily;
         player.hotTimer = SKILL_STATS.DAILY.hotDur;
         let tPos = new Vector(vMouse.x, vMouse.y);
-        splats.push({pos:tPos, r:SKILL_STATS.DAILY.radius, col:'white', life:90}); 
+        splats.push({pos:tPos, r:SKILL_STATS.DAILY.radius, col:'white', life:90});
         setTimeout(() => {
-             enemies.forEach(e => {
+            enemies.forEach(e => {
                 if(e.pos.sub(tPos).mag() < SKILL_STATS.DAILY.radius) {
                     e.hp -= SKILL_STATS.DAILY.damage;
                     e.stun = SKILL_STATS.DAILY.stun;
                     if(e.hp<=0) kill(e);
                 }
             });
-        }, 1000); 
+        }, 1000);
     }
 }
 
@@ -549,8 +592,9 @@ function kill(e) {
 function loop() {
     if(!gameActive) return;
     frame++;
-    
-    if (frame % 240 === 0 && enemies.length < 8) spawnMob();
+
+    // Reduce spawn cap slightly for mobile perf
+    if (frame % 240 === 0 && enemies.length < 6) spawnMob();
 
     player.update();
     castSkills();
@@ -558,10 +602,10 @@ function loop() {
     enemies.forEach(e => {
         if(e.dead) return;
         if(e.stun && e.stun > 0) { e.stun--; return; }
-        
+
         let toP = player.pos.sub(e.pos);
         if (toP.mag() > 30) e.pos = e.pos.add(toP.normalize().mult(e.speed));
-        
+
         if (toP.mag() < 40 && frame % 60 === 0) {
             player.hp -= 50;
             showFloat("-50", player.pos, 'red');
@@ -602,8 +646,8 @@ function loop() {
     floats = floats.filter(f => { f.pos.y -= 1; return f.life-- > 0; });
 
     let onNode = player.pos.sub(new Vector(GAME_CENTER_X, GAME_CENTER_Y)).mag() < NODE_RADIUS;
-    if (onNode) score += 1; 
-    
+    if (onNode) score += 1;
+
     if (player.hp <= 0) gameOver("DIED");
     if (frame >= GAME_END_FRAME) gameOver("VICTORY");
 
@@ -627,7 +671,7 @@ function updateUI() {
     document.getElementById('div-bar').querySelector('div').style.width = (player.divinity/MAX_DIVINITY*100)+'%';
     document.getElementById('game-timer').innerText = (frame/60).toFixed(1);
     document.getElementById('game-score').innerText = score;
-    
+
     const setCD = (id, cur, max) => {
         const el = document.getElementById(id);
         if(cur > 0) { el.style.display = 'flex'; el.innerText = (cur/60).toFixed(1); }
@@ -637,13 +681,13 @@ function updateUI() {
     setCD('cd-e', player.cooldowns.e, player.maxCd.e);
     setCD('cd-r', player.cooldowns.r, player.maxCd.r);
     setCD('cd-daily', player.cooldowns.daily, player.maxCd.daily);
-    
+
     document.getElementById('btn-tab').style.borderColor = keys.tab ? 'white' : '#555';
 }
 
 function draw() {
     ctx.fillStyle = '#111'; ctx.fillRect(0,0,canvas.width, canvas.height);
-    
+
     ctx.save();
     ctx.translate(canvas.width/2, canvas.height/2);
     ctx.scale(scaleFactor, scaleFactor);
@@ -672,36 +716,49 @@ function draw() {
     });
 
     player.draw(ctx);
+
+    // Channel divinity ring
     if(keys.tab) {
-        ctx.strokeStyle = '#00bfff'; ctx.beginPath(); ctx.arc(player.pos.x, player.pos.y, 30, 0, Math.PI*2); ctx.stroke();
+        ctx.strokeStyle = '#00bfff';
+        ctx.beginPath();
+        ctx.arc(player.pos.x, player.pos.y, 30, 0, Math.PI*2);
+        ctx.stroke();
     }
-    
+
     projectiles.forEach(p => {
         ctx.beginPath(); ctx.arc(p.pos.x, p.pos.y, p.r, 0, Math.PI*2);
         ctx.fillStyle = p.col; ctx.fill();
     });
 
-    if(joyRight.active || keys.q || keys.r || keys.lmb || keys.rmb) {
+    // Aim indicator if actively aiming/firing
+    if(joyRight.active || keys.q || keys.r || keys.lmb || keys.rmb || autoAttack) {
         ctx.beginPath();
         ctx.arc(vMouse.x, vMouse.y, 10, 0, Math.PI*2);
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)'; ctx.lineWidth = 2; ctx.stroke();
-        
+
         ctx.beginPath(); ctx.moveTo(player.pos.x, player.pos.y); ctx.lineTo(vMouse.x, vMouse.y);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)'; ctx.lineWidth = 1; ctx.stroke();
     }
-    
-    // Draw Lance of Faith line if RMB is active or Auto-Attack is on
+
+    // Draw Lance of Faith line when RMB or autoAttack
     if (keys.rmb || autoAttack) {
         ctx.beginPath(); ctx.moveTo(player.pos.x, player.pos.y); ctx.lineTo(vMouse.x, vMouse.y);
         ctx.strokeStyle = 'gold'; ctx.lineWidth = 4; ctx.stroke();
     }
 
+    // Floating text
     floats.forEach(f => {
-        ctx.fillStyle = f.col; ctx.font = "bold 24px Arial"; 
+        ctx.fillStyle = f.col; ctx.font = "bold 26px Arial";
         ctx.fillText(f.txt, f.pos.x - 10, f.pos.y);
     });
 
     ctx.restore();
+
+    // Exhaustion tint overlay for feedback (outside world transform)
+    if (player && player.exhausted) {
+        ctx.fillStyle = 'rgba(255,0,0,0.08)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 }
 </script>
 </body>
