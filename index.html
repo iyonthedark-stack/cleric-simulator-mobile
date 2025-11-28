@@ -1,15 +1,3 @@
-This is likely an input conflict, where the general-purpose mobile touch-handling code is aggressively preventing the "START" button from receiving the click/tap event, especially after a device rotation triggers a viewport change.
-
-I've created **Mobile v4** with a robust input fix.
-
-### The Fixes (Mobile v4)
-
-1.  **Start Button Input:** The "START" button now uses a dedicated `ontouchstart` handler that also ensures the browser doesn't interpret the tap as a system gesture (like zoom or scroll).
-2.  **Touch Conflict Resolution:** I refined the global touch listeners to prioritize button presses and only use `preventDefault` for the joysticks, which should resolve the frozen button issue after rotation.
-
-Please replace your entire `index.html` file on GitHub with this code.
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -685,4 +673,3 @@ function draw() {
 </script>
 </body>
 </html>
-```
