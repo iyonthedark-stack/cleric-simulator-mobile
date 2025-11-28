@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Cleric Mobile v4 (Input Fix)</title>
+    <title>Cleric Mobile v5 (Scaling & Dodge Fix)</title>
     <style>
         /* CORE RESET & MOBILE BASICS */
         body { margin: 0; padding: 0; background-color: #050505; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
@@ -14,9 +14,11 @@
         /* LANDSCAPE ENFORCEMENT */
         #rotate-message { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 999; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
         
-        /* THIS MEDIA QUERY REMAINS THE STANDARD WAY TO CHECK ORIENTATION */
         @media screen and (orientation: portrait) {
-            #rotate-message { display: flex; }
+            #rotate-message { display: flex;
+                /* Adjust font size for small phones */
+                font-size: 0.8em; 
+            }
         }
 
         /* UI OVERLAYS */
@@ -176,8 +178,23 @@ let scaleFactor = 1;
 function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    const targetVisibleWidth = 900; 
-    scaleFactor = Math.max(0.4, Math.min(canvas.width / targetVisibleWidth, 1.2));
+    
+    // FIX: Calculate scale factor based on keeping WORLD_W visible across the viewport.
+    const targetAspect = 16 / 9; // Common desktop aspect ratio (1.77)
+    const currentAspect = canvas.width / canvas.height;
+
+    // Use a fixed virtual width for scaling reference
+    const VIRTUAL_WIDTH = 1000; 
+
+    if (currentAspect < targetAspect) {
+        // Narrower than desktop (taller viewport for the width, common on phones)
+        scaleFactor = canvas.width / VIRTUAL_WIDTH; 
+    } else {
+        // Wider than desktop (like a tablet or desktop browser resized)
+        scaleFactor = canvas.height / (VIRTUAL_WIDTH / targetAspect);
+    }
+    // Ensure minimum scale for small devices
+    scaleFactor = Math.max(0.6, scaleFactor);
 }
 window.addEventListener('resize', resize);
 resize();
@@ -186,7 +203,8 @@ const joyLeft = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 };
 const joyRight = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 };
 const keys = { lmb: false, rmb: false, shift: false, q: false, e: false, r: false, tab: false, '1': false };
 let autoFire = false;
-let vMouse = { x: GAME_CENTER_X, y: GAME_CENTER_Y - 200 };
+// Initialize vMouse in World Coordinates so it's ready for dodge logic
+let vMouse = { x: GAME_CENTER_X, y: GAME_CENTER_Y - 200 }; 
 
 function toggleAutoFire() {
     autoFire = !autoFire;
@@ -196,13 +214,12 @@ function toggleAutoFire() {
 }
 
 function handleTouch(key, state, event) { 
-    if (event) event.preventDefault(); // Prevent button taps from causing browser actions
+    if (event) event.preventDefault(); 
     keys[key] = state; 
 }
 
 // Touch Logic (Passive:false allows preventDefault)
 document.addEventListener('touchstart', e => {
-    // We do NOT prevent default here. We rely on e.preventDefault() in startGame/handleTouch.
     for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
         
@@ -225,7 +242,7 @@ document.addEventListener('touchstart', e => {
 }, {passive: false});
 
 document.addEventListener('touchmove', e => {
-    e.preventDefault(); // Prevent scrolling/zooming while moving any touch
+    e.preventDefault(); 
     for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
         if (t.identifier === joyLeft.id) {
@@ -240,10 +257,19 @@ document.addEventListener('touchmove', e => {
             const dist = Math.min(45, Math.sqrt(dx*dx + dy*dy));
             const angle = Math.atan2(dy, dx);
             joyRight.x = Math.cos(angle) * (dist / 45); joyRight.y = Math.sin(angle) * (dist / 45);
+            
             if (dist > 5 && player) {
+                // Aim logic: Convert joystick direction into world coordinates
                 const aimReach = 450; 
-                vMouse.x = player.pos.x + joyRight.x * aimReach;
-                vMouse.y = player.pos.y + joyRight.y * aimReach;
+                let centerOffsetX = GAME_CENTER_X - canvas.width / (2 * scaleFactor);
+                let centerOffsetY = GAME_CENTER_Y - canvas.height / (2 * scaleFactor);
+                
+                // If player is moving stick, use that for aiming
+                if (Math.abs(joyRight.x) > 0.1 || Math.abs(joyRight.y) > 0.1) {
+                    const dir = new Vector(joyRight.x, joyRight.y).normalize();
+                    vMouse.x = player.pos.x + dir.x * aimReach;
+                    vMouse.y = player.pos.y + dir.y * aimReach;
+                }
             }
             updateJoyVisual('right', Math.cos(angle)*dist, Math.sin(angle)*dist);
         }
@@ -251,11 +277,14 @@ document.addEventListener('touchmove', e => {
 }, {passive: false});
 
 document.addEventListener('touchend', e => {
-    // Only prevent default if we were actively using a joystick, otherwise let buttons handle it.
     for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
-        if (t.identifier === joyLeft.id) { joyLeft.active = false; joyLeft.x = 0; joyLeft.y = 0; updateJoyVisual('left', 0, 0); }
-        if (t.identifier === joyRight.id) { joyRight.active = false; joyRight.x = 0; joyRight.y = 0; updateJoyVisual('right', 0, 0); }
+        if (t.identifier === joyLeft.id) { 
+            joyLeft.active = false; joyLeft.x = 0; joyLeft.y = 0; updateJoyVisual('left', 0, 0); 
+        }
+        if (t.identifier === joyRight.id) { 
+            joyRight.active = false; joyRight.x = 0; joyRight.y = 0; updateJoyVisual('right', 0, 0); 
+        }
     }
 });
 
@@ -302,6 +331,7 @@ class Player extends Entity {
         this.isCasting = false; this.castTimer = 0; this.castCb = null;
         this.slowTimer = 0; this.poisonTimer = 0; this.hotTimer = 0;
         this.exhausted = false;
+        this.dodgeDir = new Vector(0, -1); // Initialize dodge direction safely
     }
     update() {
         if (!this.isDodging) this.stamina = Math.min(MAX_STAMINA, this.stamina + STAMINA_REGEN);
@@ -336,7 +366,12 @@ class Player extends Entity {
         if (this.isDodging) {
             this.dodgeTimer--;
             if(this.dodgeTimer<=0) this.isDodging = false;
-            this.pos = this.pos.add(this.dodgeDir.mult(14)); 
+            // FIX: Ensure dodgeDir is valid before using it
+            if (this.dodgeDir && this.dodgeDir.mag() > 0) {
+                this.pos = this.pos.add(this.dodgeDir.mult(14)); 
+            } else {
+                 this.isDodging = false; // Stop dodge if direction is invalid
+            }
         } else if (!keys.tab) {
             if (Math.abs(joyLeft.x) > 0.1 || Math.abs(joyLeft.y) > 0.1) {
                 this.pos.x += joyLeft.x * speed;
@@ -354,11 +389,21 @@ class Player extends Entity {
         this.stamina -= 20;
         this.isDodging = true;
         this.dodgeTimer = 12;
+        
         if (Math.abs(joyLeft.x) > 0.1 || Math.abs(joyLeft.y) > 0.1) {
+            // Dodge in movement direction
             this.dodgeDir = new Vector(joyLeft.x, joyLeft.y).normalize();
         } else {
-            let aimDir = vMouse.sub(this.pos).normalize();
-            this.dodgeDir = aimDir.mult(-1);
+            // Dodge away from the aim point (backward dodge)
+            let aimDir = vMouse.sub(this.pos);
+            
+            // FIX: Handle case where aimDir is zero vector (i.e., vMouse is exactly at player.pos)
+            if (aimDir.mag() < 1) {
+                // If not moving and not aiming, use last direction or a safe default (e.g., straight down)
+                this.dodgeDir = this.dodgeDir.mult(-1).normalize(); 
+            } else {
+                this.dodgeDir = aimDir.normalize().mult(-1);
+            }
         }
     }
 }
@@ -376,12 +421,11 @@ let gameActive = false;
 let score = 0;
 let kills = 0;
 
-// FIX: Added event argument and preventDefault
 function startGame(e) {
     if (e) e.preventDefault(); 
     document.getElementById('menu-overlay').style.display = 'none';
     player = new Player();
-    vMouse = { x: player.pos.x, y: player.pos.y - 300 };
+    vMouse = { x: player.pos.x, y: player.pos.y - 300 }; // Re-initialize vMouse safely
     enemies = [];
     projectiles = [];
     splats = [];
@@ -517,7 +561,6 @@ function loop() {
     if(!gameActive) return;
     frame++;
     
-    // Enemy Spawning is now frame % 240, so 4 seconds.
     if (frame % 240 === 0 && enemies.length < 8) spawnMob();
 
     player.update();
@@ -556,7 +599,8 @@ function loop() {
                 }
             });
         } else {
-            if(player.pos.sub(p.pos).mag() < 20 + p.r) {
+            // Check collision only if player is not dodging
+            if(!player.isDodging && player.pos.sub(p.pos).mag() < 20 + p.r) {
                 player.hp -= p.dmg;
                 p.life = 0;
                 showFloat("-"+p.dmg, player.pos, 'red');
@@ -613,6 +657,7 @@ function draw() {
     ctx.fillStyle = '#111'; ctx.fillRect(0,0,canvas.width, canvas.height);
     
     ctx.save();
+    // Center the world view on the canvas
     ctx.translate(canvas.width/2, canvas.height/2);
     ctx.scale(scaleFactor, scaleFactor);
     ctx.translate(-GAME_CENTER_X, -GAME_CENTER_Y);
