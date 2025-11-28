@@ -4,17 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Cleric Mobile v2 (Scaled)</title>
+    <title>Cleric Mobile v3 (Fixed)</title>
     <style>
         /* CORE RESET & MOBILE BASICS */
         body { margin: 0; padding: 0; background-color: #050505; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
         #game-container { position: relative; width: 100vw; height: 100vh; background: #111; overflow: hidden; }
         canvas { display: block; width: 100%; height: 100%; }
 
+        /* LANDSCAPE ENFORCEMENT */
+        #rotate-message { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 999; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        
+        @media screen and (orientation: portrait) {
+            #rotate-message { display: flex; }
+        }
+
         /* UI OVERLAYS */
         .ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
         
-        /* TOP BAR (Resources) - COMPACTED */
+        /* TOP BAR (Resources) */
         .top-bar { position: absolute; top: 0; left: 0; width: 100%; height: 40px; background: linear-gradient(180deg, rgba(0,0,0,0.8), rgba(0,0,0,0)); display: flex; justify-content: space-between; align-items: center; padding: 0 10px; box-sizing: border-box; z-index: 10; }
         .res-cluster { display: flex; flex-direction: column; width: 35%; }
         .bar-bg { width: 100%; height: 6px; background: #333; margin-bottom: 2px; border-radius: 3px; overflow: hidden; border: 1px solid #444; }
@@ -24,52 +31,38 @@
         #stam-bar .bar-fill { background: #4caf50; }
         #div-bar .bar-fill { background: #00bfff; }
         .res-label { font-size: 8px; font-weight: bold; text-shadow: 1px 1px 1px black; margin-bottom: 1px; }
-        
         .score-box { text-align: center; font-size: 14px; color: gold; font-weight: bold; text-shadow: 0 2px 4px black; }
         
         /* JOYSTICKS */
-        .joystick-zone { position: absolute; width: 100px; height: 100px; pointer-events: auto; z-index: 20; }
-        #stick-left-zone { left: 20px; bottom: 30px; }
-        #stick-right-zone { right: 20px; bottom: 50px; pointer-events: none; }
+        .joystick-zone { position: absolute; width: 120px; height: 120px; pointer-events: auto; z-index: 20; }
+        #stick-left-zone { left: 20px; bottom: 20px; }
+        #stick-right-zone { right: 20px; bottom: 40px; pointer-events: none; }
         
-        .joystick-base { width: 80px; height: 80px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center; }
-        .joystick-stick { width: 30px; height: 30px; background: rgba(255, 255, 255, 0.3); border-radius: 50%; position: absolute; box-shadow: 0 0 10px rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
+        .joystick-base { width: 90px; height: 90px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center; }
+        .joystick-stick { width: 40px; height: 40px; background: rgba(255, 255, 255, 0.3); border-radius: 50%; position: absolute; box-shadow: 0 0 10px rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
 
-        /* SKILL BUTTONS (DOWNSCALED) */
+        /* BUTTONS */
         #skill-cluster { position: absolute; bottom: 10px; right: 10px; width: 220px; height: 220px; pointer-events: none; }
-        
         .btn { pointer-events: auto; position: absolute; border-radius: 50%; background: #222; border: 2px solid #555; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 10px; touch-action: manipulation; box-shadow: 0 4px 6px rgba(0,0,0,0.4); transition: transform 0.1s; }
         .btn:active { transform: scale(0.9) !important; border-color: white; background: #444; }
         .btn-cd-overlay { position: absolute; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #ff4444; font-size: 10px; }
         
-        /* Sizing Logic: Buttons are smaller now */
-        .btn-main { width: 45px; height: 45px; }
-        .btn-sub { width: 40px; height: 40px; }
+        .btn-main { width: 50px; height: 50px; }
+        .btn-sub { width: 45px; height: 45px; }
         .btn-mini { width: 35px; height: 35px; }
         
-        /* Layout of buttons (Arc adjusted for corner) */
-        /* Center (Dodge) */
-        #btn-dodge { width: 50px; height: 50px; bottom: 20px; right: 20px; background: #333; border-color: #999; z-index: 25; font-size: 9px; }
-        
-        /* Arc 1 (Attacks) */
-        #btn-lmb { bottom: 80px; right: 15px; background: #1a3a1a; color: #39FFAC; } 
-        #btn-rmb { bottom: 20px; right: 80px; background: #3a3a1a; color: #ffd700; } 
-        
-        /* Arc 2 (Skills) */
-        #btn-q { bottom: 130px; right: 10px; background: #2d1515; color: #ff8888; }
-        #btn-e { bottom: 105px; right: 65px; background: #2d1515; color: #ff8888; }
-        #btn-r { bottom: 65px; right: 105px; background: #2d1515; color: #ff8888; }
-        
-        /* Utility */
-        #btn-tab { bottom: 125px; right: 135px; background: #001a33; color: #00bfff; } 
-        
-        /* Daily (Moved to be less intrusive) */
+        #btn-dodge { width: 55px; height: 55px; bottom: 20px; right: 20px; background: #333; border-color: #999; z-index: 25; font-size: 9px; }
+        #btn-lmb { bottom: 85px; right: 15px; background: #1a3a1a; color: #39FFAC; } 
+        #btn-rmb { bottom: 20px; right: 85px; background: #3a3a1a; color: #ffd700; } 
+        #btn-q { bottom: 140px; right: 10px; background: #2d1515; color: #ff8888; }
+        #btn-e { bottom: 115px; right: 70px; background: #2d1515; color: #ff8888; }
+        #btn-r { bottom: 70px; right: 115px; background: #2d1515; color: #ff8888; }
+        #btn-tab { bottom: 135px; right: 140px; background: #001a33; color: #00bfff; } 
         #btn-daily { width: 50px; height: 50px; top: 60px; left: 10px; background: #333300; border: 2px solid gold; color: gold; position: absolute; pointer-events: auto; z-index: 50; box-shadow: 0 0 15px rgba(255, 215, 0, 0.2); }
         
         /* MENUS */
         #menu-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; pointer-events: auto; backdrop-filter: blur(5px); }
         .menu-btn { padding: 12px 30px; background: #3498db; color: white; border: none; font-size: 18px; border-radius: 8px; margin: 10px; font-weight: bold; box-shadow: 0 4px #1b5e8a; }
-        .menu-btn:active { transform: translateY(4px); box-shadow: none; }
         
         /* TOGGLE */
         .toggle-container { position: absolute; top: 60px; right: 10px; pointer-events: auto; }
@@ -78,6 +71,11 @@
     </style>
 </head>
 <body>
+
+<div id="rotate-message">
+    <h2 style="color: #ffd700;">Please Rotate Device</h2>
+    <p>This game requires Landscape mode.</p>
+</div>
 
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
@@ -102,48 +100,22 @@
     </div>
 
     <div class="ui-layer">
-        <div id="btn-daily" class="btn" ontouchstart="handleTouch('1', true)" ontouchend="handleTouch('1', false)">
-            ULT
-            <div class="btn-cd-overlay" id="cd-daily" style="display:none;"></div>
-        </div>
+        <div id="btn-daily" class="btn" ontouchstart="handleTouch('1', true)" ontouchend="handleTouch('1', false)">ULT<div class="btn-cd-overlay" id="cd-daily" style="display:none;"></div></div>
         
         <div class="toggle-container">
             <button id="toggle-autofire" class="toggle-btn" onclick="toggleAutoFire()">Auto-Fire: OFF</button>
         </div>
 
-        <div id="stick-left-zone" class="joystick-zone">
-            <div class="joystick-base">
-                <div class="joystick-stick" id="stick-left"></div>
-            </div>
-        </div>
-
-        <div id="stick-right-zone" class="joystick-zone">
-            <div class="joystick-base" style="opacity: 0.3">
-                <div class="joystick-stick" id="stick-right"></div>
-            </div>
-        </div>
+        <div id="stick-left-zone" class="joystick-zone"><div class="joystick-base"><div class="joystick-stick" id="stick-left"></div></div></div>
+        <div id="stick-right-zone" class="joystick-zone"><div class="joystick-base" style="opacity: 0.3"><div class="joystick-stick" id="stick-right"></div></div></div>
 
         <div id="skill-cluster">
             <div id="btn-dodge" class="btn" ontouchstart="handleTouch('shift', true)" ontouchend="handleTouch('shift', false)">DASH</div>
-            
             <div id="btn-lmb" class="btn btn-main" ontouchstart="handleTouch('lmb', true)" ontouchend="handleTouch('lmb', false)">🔥</div>
             <div id="btn-rmb" class="btn btn-main" ontouchstart="handleTouch('rmb', true)" ontouchend="handleTouch('rmb', false)">🔦</div>
-            
-            <div id="btn-q" class="btn btn-sub" ontouchstart="handleTouch('q', true)" ontouchend="handleTouch('q', false)">
-                ⚡
-                <div class="btn-cd-overlay" id="cd-q" style="display:none;"></div>
-            </div>
-            
-            <div id="btn-e" class="btn btn-sub" ontouchstart="handleTouch('e', true)" ontouchend="handleTouch('e', false)">
-                💥
-                <div class="btn-cd-overlay" id="cd-e" style="display:none;"></div>
-            </div>
-            
-            <div id="btn-r" class="btn btn-sub" ontouchstart="handleTouch('r', true)" ontouchend="handleTouch('r', false)">
-                ➕
-                <div class="btn-cd-overlay" id="cd-r" style="display:none;"></div>
-            </div>
-            
+            <div id="btn-q" class="btn btn-sub" ontouchstart="handleTouch('q', true)" ontouchend="handleTouch('q', false)">⚡<div class="btn-cd-overlay" id="cd-q" style="display:none;"></div></div>
+            <div id="btn-e" class="btn btn-sub" ontouchstart="handleTouch('e', true)" ontouchend="handleTouch('e', false)">💥<div class="btn-cd-overlay" id="cd-e" style="display:none;"></div></div>
+            <div id="btn-r" class="btn btn-sub" ontouchstart="handleTouch('r', true)" ontouchend="handleTouch('r', false)">➕<div class="btn-cd-overlay" id="cd-r" style="display:none;"></div></div>
             <div id="btn-tab" class="btn btn-mini" ontouchstart="handleTouch('tab', true)" ontouchend="handleTouch('tab', false)">⚖️</div>
         </div>
     </div>
@@ -154,7 +126,7 @@
         <button class="menu-btn" onclick="startGame()">START</button>
         <div style="margin-top:20px; font-size: 11px; color: #666; text-align: center; line-height: 1.6;">
             Left Stick: Move<br>Right Area: Aim<br>
-            Center buttons to Attack
+            Use Landscape Mode!
         </div>
     </div>
 </div>
@@ -163,24 +135,17 @@
 /* ================================
    LOGIC: VIRTUAL RESOLUTION
    ================================ */
-// We decouple the "Game World" from the "Screen Size"
-// The game always thinks it's running on a 1200x1200 map.
 const WORLD_W = 1200;
 const WORLD_H = 1200;
-
-// Center of the game world
 const GAME_CENTER_X = WORLD_W / 2;
 const GAME_CENTER_Y = WORLD_H / 2;
-
-// The Node Radius (Game Units)
 const NODE_RADIUS = 350; 
 const GRID_SIZE = 100;
-
 const FPS = 60;
 const GAME_END_FRAME = 120 * FPS; 
 
 // Stats
-const PLAYER_SPEED = 7; // Slightly faster to feel good on mobile
+const PLAYER_SPEED = 7; 
 const MAX_HP = 2000;
 const MAX_STAMINA = 100;
 const MAX_DIVINITY = 1000;
@@ -206,22 +171,12 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 let scaleFactor = 1;
-let transX = 0;
-let transY = 0;
 
-// Resizing: Calculate the "Camera Zoom"
 function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    
-    // We want to see roughly 800-900 units of the game world width on screen
-    // On a phone (width 400), this means scale = 0.5
-    // On a PC (width 1920), scale = 1.0 (capped)
-    const targetVisibleWidth = 850; 
-    scaleFactor = Math.min(canvas.width / targetVisibleWidth, 1.2); // Cap zoom for desktops
-    
-    // Minimum scale safeguard for very narrow phones
-    if (scaleFactor < 0.4) scaleFactor = 0.4;
+    const targetVisibleWidth = 900; 
+    scaleFactor = Math.max(0.4, Math.min(canvas.width / targetVisibleWidth, 1.2));
 }
 window.addEventListener('resize', resize);
 resize();
@@ -230,8 +185,6 @@ const joyLeft = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 };
 const joyRight = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 };
 const keys = { lmb: false, rmb: false, shift: false, q: false, e: false, r: false, tab: false, '1': false };
 let autoFire = false;
-
-// Virtual Mouse (Aim Target) - In Game Coordinates
 let vMouse = { x: GAME_CENTER_X, y: GAME_CENTER_Y - 200 };
 
 function toggleAutoFire() {
@@ -243,8 +196,9 @@ function toggleAutoFire() {
 
 function handleTouch(key, state) { keys[key] = state; }
 
-// Touch Logic
+// Touch Logic (Prevent Default to stop scrolling)
 document.addEventListener('touchstart', e => {
+    if(e.target.tagName !== 'BUTTON') e.preventDefault(); 
     for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
         if (t.clientX < window.innerWidth / 2 && t.clientY > window.innerHeight / 2) {
@@ -264,27 +218,25 @@ document.addEventListener('touchstart', e => {
 }, {passive: false});
 
 document.addEventListener('touchmove', e => {
+    e.preventDefault(); 
     for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
         if (t.identifier === joyLeft.id) {
             const dx = t.clientX - joyLeft.originX; const dy = t.clientY - joyLeft.originY;
-            const dist = Math.min(40, Math.sqrt(dx*dx + dy*dy));
+            const dist = Math.min(45, Math.sqrt(dx*dx + dy*dy));
             const angle = Math.atan2(dy, dx);
-            joyLeft.x = Math.cos(angle) * (dist / 40); joyLeft.y = Math.sin(angle) * (dist / 40);
+            joyLeft.x = Math.cos(angle) * (dist / 45); joyLeft.y = Math.sin(angle) * (dist / 45);
             updateJoyVisual('left', Math.cos(angle)*dist, Math.sin(angle)*dist);
         }
         if (t.identifier === joyRight.id) {
             const dx = t.clientX - joyRight.originX; const dy = t.clientY - joyRight.originY;
-            const dist = Math.min(40, Math.sqrt(dx*dx + dy*dy));
+            const dist = Math.min(45, Math.sqrt(dx*dx + dy*dy));
             const angle = Math.atan2(dy, dx);
-            joyRight.x = Math.cos(angle) * (dist / 40); joyRight.y = Math.sin(angle) * (dist / 40);
-            if (dist > 5) {
-                // Update Aim relative to player
-                if(player) {
-                    const aimReach = 450; 
-                    vMouse.x = player.pos.x + joyRight.x * aimReach;
-                    vMouse.y = player.pos.y + joyRight.y * aimReach;
-                }
+            joyRight.x = Math.cos(angle) * (dist / 45); joyRight.y = Math.sin(angle) * (dist / 45);
+            if (dist > 5 && player) {
+                const aimReach = 450; 
+                vMouse.x = player.pos.x + joyRight.x * aimReach;
+                vMouse.y = player.pos.y + joyRight.y * aimReach;
             }
             updateJoyVisual('right', Math.cos(angle)*dist, Math.sin(angle)*dist);
         }
@@ -292,6 +244,7 @@ document.addEventListener('touchmove', e => {
 }, {passive: false});
 
 document.addEventListener('touchend', e => {
+    e.preventDefault();
     for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
         if (t.identifier === joyLeft.id) { joyLeft.active = false; joyLeft.x = 0; joyLeft.y = 0; updateJoyVisual('left', 0, 0); }
@@ -300,7 +253,8 @@ document.addEventListener('touchend', e => {
 });
 
 function updateJoyVisual(side, x, y) {
-    document.getElementById(`stick-${side}`).style.transform = `translate(${x}px, ${y}px)`;
+    const el = document.getElementById(`stick-${side}`);
+    if(el) el.style.transform = `translate(${x}px, ${y}px)`;
 }
 
 /* ================================
@@ -318,6 +272,17 @@ class Vector {
 class Entity {
     constructor(x, y, r, c) { this.pos = new Vector(x,y); this.r = r; this.c = c; this.dead = false; }
     draw(ctx) { ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, this.r, 0, Math.PI*2); ctx.fillStyle = this.c; ctx.fill(); }
+}
+
+class Enemy extends Entity {
+    constructor(x, y, type) {
+        super(x, y, 20, type==='MELEE'?'#f40':(type==='RANGED'?'#36f':'#0c0'));
+        this.type = type;
+        this.maxHp = type==='MELEE'?8000:(type==='RANGED'?3000:5000);
+        this.hp = this.maxHp;
+        this.speed = type==='MELEE'?2.5:(type==='RANGED'?4.5:3.5);
+        this.stun = 0;
+    }
 }
 
 class Player extends Entity {
@@ -372,7 +337,6 @@ class Player extends Entity {
             }
         }
 
-        // BOUNDS (Uses WORLD size now)
         this.pos.x = Math.max(20, Math.min(WORLD_W-20, this.pos.x));
         this.pos.y = Math.max(20, Math.min(WORLD_H-20, this.pos.y));
     }
@@ -408,7 +372,6 @@ let kills = 0;
 function startGame() {
     document.getElementById('menu-overlay').style.display = 'none';
     player = new Player();
-    // Default aim ahead
     vMouse = { x: player.pos.x, y: player.pos.y - 300 };
     enemies = [];
     projectiles = [];
@@ -431,16 +394,7 @@ function spawnMob() {
         d = new Vector(x,y).sub(new Vector(GAME_CENTER_X, GAME_CENTER_Y)).mag();
     } while(d < NODE_RADIUS + 50);
     
-    enemies.push({
-        pos: new Vector(x,y),
-        type: type,
-        hp: type==='MELEE'?8000:(type==='RANGED'?3000:5000),
-        maxHp: type==='MELEE'?8000:(type==='RANGED'?3000:5000),
-        r: 20,
-        color: type==='MELEE'?'#f40':(type==='RANGED'?'#36f':'#0c0'),
-        speed: type==='MELEE'?2.5:(type==='RANGED'?4.5:3.5),
-        actTimer: 0
-    });
+    enemies.push(new Enemy(x, y, type));
 }
 
 function showFloat(txt, pos, col) {
@@ -451,7 +405,6 @@ function castSkills() {
     if (player.isCasting || player.isDodging || keys.tab) return;
     if (keys.shift) player.dodge();
 
-    // Sacred Flame
     if ((keys.lmb || (autoFire && joyRight.active)) && frame % SKILL_STATS.SACRED_FLAME.frames === 0) {
         let dir = vMouse.sub(player.pos);
         projectiles.push({
@@ -462,7 +415,6 @@ function castSkills() {
         player.ap = Math.min(MAX_AP, player.ap + 5);
     }
 
-    // Lance
     if (keys.rmb && frame % SKILL_STATS.LANCE_OF_FAITH.tick === 0) {
         let aimDir = vMouse.sub(player.pos);
         let hit = false;
@@ -479,7 +431,6 @@ function castSkills() {
         if(hit) player.ap = Math.min(MAX_AP, player.ap + 10);
     }
 
-    // Q: Daunting Light
     if (keys.q && player.cooldowns.q <= 0 && player.divinity >= SKILL_STATS.DAUNTING_LIGHT.div) {
         player.divinity -= SKILL_STATS.DAUNTING_LIGHT.div;
         player.cooldowns.q = player.maxCd.q;
@@ -499,7 +450,6 @@ function castSkills() {
         };
     }
 
-    // E: Sunburst
     if (keys.e && player.cooldowns.e <= 0) {
         player.cooldowns.e = player.maxCd.e;
         player.hp = Math.min(MAX_HP, player.hp + SKILL_STATS.SUNBURST.heal);
@@ -514,7 +464,6 @@ function castSkills() {
         });
     }
 
-    // R: Bastion
     if (keys.r && player.cooldowns.r <= 0 && player.divinity >= SKILL_STATS.BASTION.div) {
         player.divinity -= SKILL_STATS.BASTION.div;
         player.cooldowns.r = player.maxCd.r;
@@ -530,7 +479,6 @@ function castSkills() {
         };
     }
     
-    // 1: Daily
     if (keys['1'] && player.cooldowns.daily <= 0 && player.ap >= MAX_AP) {
         player.ap = 0;
         player.cooldowns.daily = player.maxCd.daily;
@@ -565,7 +513,6 @@ function loop() {
     player.update();
     castSkills();
 
-    // Enemy Logic
     enemies.forEach(e => {
         if(e.dead) return;
         if(e.stun && e.stun > 0) { e.stun--; return; }
@@ -655,21 +602,15 @@ function updateUI() {
 function draw() {
     ctx.fillStyle = '#111'; ctx.fillRect(0,0,canvas.width, canvas.height);
     
-    // CAMERA TRANSFORM
     ctx.save();
-    // 1. Move to center of screen
     ctx.translate(canvas.width/2, canvas.height/2);
-    // 2. Scale
     ctx.scale(scaleFactor, scaleFactor);
-    // 3. Move back so GAME CENTER is at SCREEN CENTER
     ctx.translate(-GAME_CENTER_X, -GAME_CENTER_Y);
 
-    // Grid lines (Visual help)
+    // World Grid
     ctx.strokeStyle = '#222'; ctx.lineWidth = 2;
     for(let x=0; x<=WORLD_W; x+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x, WORLD_H); ctx.stroke(); }
     for(let y=0; y<=WORLD_H; y+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(WORLD_W, y); ctx.stroke(); }
-
-    // World Border
     ctx.strokeStyle = '#500'; ctx.lineWidth = 5; ctx.strokeRect(0,0,WORLD_W, WORLD_H);
 
     // Node
@@ -678,31 +619,26 @@ function draw() {
     ctx.strokeStyle = '#333'; ctx.lineWidth=2; ctx.stroke();
     ctx.fillStyle = 'rgba(0,255,100,0.05)'; ctx.fill();
 
-    // Splats
     splats.forEach(s => {
         ctx.beginPath(); ctx.arc(s.pos.x, s.pos.y, s.r, 0, Math.PI*2);
         ctx.fillStyle = s.col; ctx.globalAlpha = 0.4; ctx.fill(); ctx.globalAlpha = 1;
     });
 
-    // Enemies
     enemies.forEach(e => {
         e.draw(ctx);
         ctx.fillStyle = 'red'; ctx.fillRect(e.pos.x-15, e.pos.y-30, 30*(e.hp/e.maxHp), 4);
     });
 
-    // Player
     player.draw(ctx);
     if(keys.tab) {
         ctx.strokeStyle = '#00bfff'; ctx.beginPath(); ctx.arc(player.pos.x, player.pos.y, 30, 0, Math.PI*2); ctx.stroke();
     }
     
-    // Projectiles
     projectiles.forEach(p => {
         ctx.beginPath(); ctx.arc(p.pos.x, p.pos.y, p.r, 0, Math.PI*2);
         ctx.fillStyle = p.col; ctx.fill();
     });
 
-    // Targeting
     if(joyRight.active || keys.q || keys.r || keys.lmb || keys.rmb) {
         ctx.beginPath();
         ctx.arc(vMouse.x, vMouse.y, 10, 0, Math.PI*2);
@@ -717,7 +653,6 @@ function draw() {
         ctx.strokeStyle = 'gold'; ctx.lineWidth = 4; ctx.stroke();
     }
 
-    // Floating Text
     floats.forEach(f => {
         ctx.fillStyle = f.col; ctx.font = "bold 24px Arial"; 
         ctx.fillText(f.txt, f.pos.x - 10, f.pos.y);
