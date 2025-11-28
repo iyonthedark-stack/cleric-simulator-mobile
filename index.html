@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Cleric Mobile v5 (Scaling & Dodge Fix)</title>
+    <title>Cleric Mobile v6 (Aggressive Scaling)</title>
     <style>
         /* CORE RESET & MOBILE BASICS */
         body { margin: 0; padding: 0; background-color: #050505; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
@@ -16,7 +16,6 @@
         
         @media screen and (orientation: portrait) {
             #rotate-message { display: flex;
-                /* Adjust font size for small phones */
                 font-size: 0.8em; 
             }
         }
@@ -36,13 +35,13 @@
         .res-label { font-size: 8px; font-weight: bold; text-shadow: 1px 1px 1px black; margin-bottom: 1px; }
         .score-box { text-align: center; font-size: 14px; color: gold; font-weight: bold; text-shadow: 0 2px 4px black; }
         
-        /* JOYSTICKS */
-        .joystick-zone { position: absolute; width: 120px; height: 120px; pointer-events: auto; z-index: 20; }
-        #stick-left-zone { left: 20px; bottom: 20px; }
-        #stick-right-zone { right: 20px; bottom: 40px; pointer-events: none; }
+        /* JOYSTICKS (REDUCED SIZE) */
+        .joystick-zone { position: absolute; width: 110px; height: 110px; pointer-events: auto; z-index: 20; }
+        #stick-left-zone { left: 10px; bottom: 10px; }
+        #stick-right-zone { right: 10px; bottom: 30px; pointer-events: none; }
         
-        .joystick-base { width: 90px; height: 90px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center; }
-        .joystick-stick { width: 40px; height: 40px; background: rgba(255, 255, 255, 0.3); border-radius: 50%; position: absolute; box-shadow: 0 0 10px rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
+        .joystick-base { width: 80px; height: 80px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center; }
+        .joystick-stick { width: 35px; height: 35px; background: rgba(255, 255, 255, 0.3); border-radius: 50%; position: absolute; box-shadow: 0 0 10px rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
 
         /* BUTTONS */
         #skill-cluster { position: absolute; bottom: 10px; right: 10px; width: 220px; height: 220px; pointer-events: none; }
@@ -179,22 +178,20 @@ function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     
-    // FIX: Calculate scale factor based on keeping WORLD_W visible across the viewport.
-    const targetAspect = 16 / 9; // Common desktop aspect ratio (1.77)
+    // AGGRESSIVE SCALING FIX: 
+    // Calculate the scale factor needed to fit the 1200 world width into the current screen width.
+    let calculatedScale = canvas.width / WORLD_W; 
+    
+    // Clamp the scale to be aggressive enough for small phones (max 0.6) but not too small (min 0.3)
+    scaleFactor = Math.min(0.6, Math.max(0.3, calculatedScale));
+    
+    // If the device is very wide (e.g., tablet), use height to prevent huge maps
     const currentAspect = canvas.width / canvas.height;
-
-    // Use a fixed virtual width for scaling reference
-    const VIRTUAL_WIDTH = 1000; 
-
-    if (currentAspect < targetAspect) {
-        // Narrower than desktop (taller viewport for the width, common on phones)
-        scaleFactor = canvas.width / VIRTUAL_WIDTH; 
-    } else {
-        // Wider than desktop (like a tablet or desktop browser resized)
-        scaleFactor = canvas.height / (VIRTUAL_WIDTH / targetAspect);
+    if (currentAspect > 2.0) { // e.g. very wide foldables or desktop
+        // Base scaling off a common visible height (e.g. 600 virtual units)
+        const VIRTUAL_HEIGHT = 600; 
+        scaleFactor = Math.min(0.6, Math.max(0.3, canvas.height / VIRTUAL_HEIGHT));
     }
-    // Ensure minimum scale for small devices
-    scaleFactor = Math.max(0.6, scaleFactor);
 }
 window.addEventListener('resize', resize);
 resize();
@@ -203,7 +200,6 @@ const joyLeft = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 };
 const joyRight = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 };
 const keys = { lmb: false, rmb: false, shift: false, q: false, e: false, r: false, tab: false, '1': false };
 let autoFire = false;
-// Initialize vMouse in World Coordinates so it's ready for dodge logic
 let vMouse = { x: GAME_CENTER_X, y: GAME_CENTER_Y - 200 }; 
 
 function toggleAutoFire() {
@@ -245,26 +241,23 @@ document.addEventListener('touchmove', e => {
     e.preventDefault(); 
     for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
+        const STICK_MAX_DIST = 40; // Reduced max dist for smaller stick visuals
+
         if (t.identifier === joyLeft.id) {
             const dx = t.clientX - joyLeft.originX; const dy = t.clientY - joyLeft.originY;
-            const dist = Math.min(45, Math.sqrt(dx*dx + dy*dy));
+            const dist = Math.min(STICK_MAX_DIST, Math.sqrt(dx*dx + dy*dy));
             const angle = Math.atan2(dy, dx);
-            joyLeft.x = Math.cos(angle) * (dist / 45); joyLeft.y = Math.sin(angle) * (dist / 45);
+            joyLeft.x = Math.cos(angle) * (dist / STICK_MAX_DIST); joyLeft.y = Math.sin(angle) * (dist / STICK_MAX_DIST);
             updateJoyVisual('left', Math.cos(angle)*dist, Math.sin(angle)*dist);
         }
         if (t.identifier === joyRight.id) {
             const dx = t.clientX - joyRight.originX; const dy = t.clientY - joyRight.originY;
-            const dist = Math.min(45, Math.sqrt(dx*dx + dy*dy));
+            const dist = Math.min(STICK_MAX_DIST, Math.sqrt(dx*dx + dy*dy));
             const angle = Math.atan2(dy, dx);
-            joyRight.x = Math.cos(angle) * (dist / 45); joyRight.y = Math.sin(angle) * (dist / 45);
+            joyRight.x = Math.cos(angle) * (dist / STICK_MAX_DIST); joyRight.y = Math.sin(angle) * (dist / STICK_MAX_DIST);
             
             if (dist > 5 && player) {
-                // Aim logic: Convert joystick direction into world coordinates
                 const aimReach = 450; 
-                let centerOffsetX = GAME_CENTER_X - canvas.width / (2 * scaleFactor);
-                let centerOffsetY = GAME_CENTER_Y - canvas.height / (2 * scaleFactor);
-                
-                // If player is moving stick, use that for aiming
                 if (Math.abs(joyRight.x) > 0.1 || Math.abs(joyRight.y) > 0.1) {
                     const dir = new Vector(joyRight.x, joyRight.y).normalize();
                     vMouse.x = player.pos.x + dir.x * aimReach;
@@ -331,7 +324,7 @@ class Player extends Entity {
         this.isCasting = false; this.castTimer = 0; this.castCb = null;
         this.slowTimer = 0; this.poisonTimer = 0; this.hotTimer = 0;
         this.exhausted = false;
-        this.dodgeDir = new Vector(0, -1); // Initialize dodge direction safely
+        this.dodgeDir = new Vector(0, -1); 
     }
     update() {
         if (!this.isDodging) this.stamina = Math.min(MAX_STAMINA, this.stamina + STAMINA_REGEN);
@@ -366,11 +359,10 @@ class Player extends Entity {
         if (this.isDodging) {
             this.dodgeTimer--;
             if(this.dodgeTimer<=0) this.isDodging = false;
-            // FIX: Ensure dodgeDir is valid before using it
             if (this.dodgeDir && this.dodgeDir.mag() > 0) {
                 this.pos = this.pos.add(this.dodgeDir.mult(14)); 
             } else {
-                 this.isDodging = false; // Stop dodge if direction is invalid
+                 this.isDodging = false; 
             }
         } else if (!keys.tab) {
             if (Math.abs(joyLeft.x) > 0.1 || Math.abs(joyLeft.y) > 0.1) {
@@ -391,15 +383,11 @@ class Player extends Entity {
         this.dodgeTimer = 12;
         
         if (Math.abs(joyLeft.x) > 0.1 || Math.abs(joyLeft.y) > 0.1) {
-            // Dodge in movement direction
             this.dodgeDir = new Vector(joyLeft.x, joyLeft.y).normalize();
         } else {
-            // Dodge away from the aim point (backward dodge)
             let aimDir = vMouse.sub(this.pos);
             
-            // FIX: Handle case where aimDir is zero vector (i.e., vMouse is exactly at player.pos)
             if (aimDir.mag() < 1) {
-                // If not moving and not aiming, use last direction or a safe default (e.g., straight down)
                 this.dodgeDir = this.dodgeDir.mult(-1).normalize(); 
             } else {
                 this.dodgeDir = aimDir.normalize().mult(-1);
@@ -425,7 +413,7 @@ function startGame(e) {
     if (e) e.preventDefault(); 
     document.getElementById('menu-overlay').style.display = 'none';
     player = new Player();
-    vMouse = { x: player.pos.x, y: player.pos.y - 300 }; // Re-initialize vMouse safely
+    vMouse = { x: player.pos.x, y: player.pos.y - 300 }; 
     enemies = [];
     projectiles = [];
     splats = [];
@@ -599,7 +587,6 @@ function loop() {
                 }
             });
         } else {
-            // Check collision only if player is not dodging
             if(!player.isDodging && player.pos.sub(p.pos).mag() < 20 + p.r) {
                 player.hp -= p.dmg;
                 p.life = 0;
@@ -657,7 +644,6 @@ function draw() {
     ctx.fillStyle = '#111'; ctx.fillRect(0,0,canvas.width, canvas.height);
     
     ctx.save();
-    // Center the world view on the canvas
     ctx.translate(canvas.width/2, canvas.height/2);
     ctx.scale(scaleFactor, scaleFactor);
     ctx.translate(-GAME_CENTER_X, -GAME_CENTER_Y);
