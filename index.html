@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Cleric Mobile v6 (Aggressive Scaling)</title>
+    <title>Cleric Mobile v7 (UI Re-Scale & Control Fix)</title>
     <style>
         /* CORE RESET & MOBILE BASICS */
         body { margin: 0; padding: 0; background-color: #050505; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
@@ -35,41 +35,41 @@
         .res-label { font-size: 8px; font-weight: bold; text-shadow: 1px 1px 1px black; margin-bottom: 1px; }
         .score-box { text-align: center; font-size: 14px; color: gold; font-weight: bold; text-shadow: 0 2px 4px black; }
         
-        /* JOYSTICKS (REDUCED SIZE) */
-        .joystick-zone { position: absolute; width: 110px; height: 110px; pointer-events: auto; z-index: 20; }
-        #stick-left-zone { left: 10px; bottom: 10px; }
-        #stick-right-zone { right: 10px; bottom: 30px; pointer-events: none; }
+        /* JOYSTICKS (SHRUNK & MOVED UP/AWAY) */
+        .joystick-zone { position: absolute; width: 100px; height: 100px; pointer-events: auto; z-index: 20; }
+        #stick-left-zone { left: 10px; bottom: 30px; } /* Moved up */
+        #stick-right-zone { right: 120px; bottom: 30px; pointer-events: none; } /* Moved up and left */
         
-        .joystick-base { width: 80px; height: 80px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center; }
-        .joystick-stick { width: 35px; height: 35px; background: rgba(255, 255, 255, 0.3); border-radius: 50%; position: absolute; box-shadow: 0 0 10px rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
+        .joystick-base { width: 70px; height: 70px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center; }
+        .joystick-stick { width: 30px; height: 30px; background: rgba(255, 255, 255, 0.3); border-radius: 50%; position: absolute; box-shadow: 0 0 10px rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
 
-        /* BUTTONS */
-        #skill-cluster { position: absolute; bottom: 10px; right: 10px; width: 220px; height: 220px; pointer-events: none; }
-        .btn { pointer-events: auto; position: absolute; border-radius: 50%; background: #222; border: 2px solid #555; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 10px; touch-action: manipulation; box-shadow: 0 4px 6px rgba(0,0,0,0.4); transition: transform 0.1s; }
+        /* BUTTONS (SHRUNK & TIGHTLY PACKED) */
+        #skill-cluster { position: absolute; bottom: 10px; right: 10px; width: 180px; height: 180px; pointer-events: none; }
+        .btn { pointer-events: auto; position: absolute; border-radius: 50%; background: #222; border: 2px solid #555; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 9px; touch-action: manipulation; box-shadow: 0 4px 6px rgba(0,0,0,0.4); transition: transform 0.1s; }
         .btn:active { transform: scale(0.9) !important; border-color: white; background: #444; }
-        .btn-cd-overlay { position: absolute; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #ff4444; font-size: 10px; }
+        .btn-cd-overlay { position: absolute; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #ff4444; font-size: 9px; }
         
-        .btn-main { width: 50px; height: 50px; }
-        .btn-sub { width: 45px; height: 45px; }
-        .btn-mini { width: 35px; height: 35px; }
+        .btn-main { width: 45px; height: 45px; } /* Shrunk */
+        .btn-sub { width: 40px; height: 40px; } /* Shrunk */
+        .btn-mini { width: 30px; height: 30px; } /* Shrunk */
         
-        #btn-dodge { width: 55px; height: 55px; bottom: 20px; right: 20px; background: #333; border-color: #999; z-index: 25; font-size: 9px; }
-        #btn-lmb { bottom: 85px; right: 15px; background: #1a3a1a; color: #39FFAC; } 
-        #btn-rmb { bottom: 20px; right: 85px; background: #3a3a1a; color: #ffd700; } 
-        #btn-q { bottom: 140px; right: 10px; background: #2d1515; color: #ff8888; }
-        #btn-e { bottom: 115px; right: 70px; background: #2d1515; color: #ff8888; }
-        #btn-r { bottom: 70px; right: 115px; background: #2d1515; color: #ff8888; }
-        #btn-tab { bottom: 135px; right: 140px; background: #001a33; color: #00bfff; } 
-        #btn-daily { width: 50px; height: 50px; top: 60px; left: 10px; background: #333300; border: 2px solid gold; color: gold; position: absolute; pointer-events: auto; z-index: 50; box-shadow: 0 0 15px rgba(255, 215, 0, 0.2); }
+        #btn-dodge { width: 50px; height: 50px; bottom: 15px; right: 15px; background: #333; border-color: #999; z-index: 25; font-size: 8px; }
+        #btn-lmb { bottom: 65px; right: 10px; background: #1a3a1a; color: #39FFAC; } 
+        #btn-rmb { bottom: 10px; right: 75px; background: #3a3a1a; color: #ffd700; } 
+        #btn-q { bottom: 105px; right: 5px; background: #2d1515; color: #ff8888; }
+        #btn-e { bottom: 90px; right: 55px; background: #2d1515; color: #ff8888; }
+        #btn-r { bottom: 50px; right: 100px; background: #2d1515; color: #ff8888; }
+        #btn-tab { bottom: 125px; right: 90px; background: #001a33; color: #00bfff; } 
+        #btn-daily { width: 40px; height: 40px; bottom: 70px; right: 135px; background: #333300; border: 2px solid gold; color: gold; position: absolute; pointer-events: auto; z-index: 50; box-shadow: 0 0 15px rgba(255, 215, 0, 0.2); }
         
         /* MENUS */
         #menu-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; pointer-events: auto; backdrop-filter: blur(5px); }
         .menu-btn { padding: 12px 30px; background: #3498db; color: white; border: none; font-size: 18px; border-radius: 8px; margin: 10px; font-weight: bold; box-shadow: 0 4px #1b5e8a; }
         
         /* TOGGLE */
-        .toggle-container { position: absolute; top: 60px; right: 10px; pointer-events: auto; }
+        .toggle-container { position: absolute; top: 5px; right: 10px; pointer-events: auto; z-index: 50; }
         .toggle-btn { background: #222; color: #888; border: 1px solid #444; padding: 4px 8px; font-size: 10px; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px; }
-        .toggle-btn.active { background: #00bfff; color: white; border-color: #fff; box-shadow: 0 0 8px #00bfff; }
+        .toggle-btn.active { background: #ff5722; color: white; border-color: #fff; box-shadow: 0 0 8px #ff5722; }
     </style>
 </head>
 <body>
@@ -102,16 +102,17 @@
     </div>
 
     <div class="ui-layer">
-        <div id="btn-daily" class="btn" ontouchstart="handleTouch('1', true, event)" ontouchend="handleTouch('1', false, event)">ULT<div class="btn-cd-overlay" id="cd-daily" style="display:none;"></div></div>
         
         <div class="toggle-container">
-            <button id="toggle-autofire" class="toggle-btn" onclick="toggleAutoFire()">Auto-Fire: OFF</button>
+            <button id="toggle-autoattack" class="toggle-btn" onclick="toggleAutoAttack()">Auto-Attack: OFF</button>
         </div>
 
         <div id="stick-left-zone" class="joystick-zone"><div class="joystick-base"><div class="joystick-stick" id="stick-left"></div></div></div>
         <div id="stick-right-zone" class="joystick-zone"><div class="joystick-base" style="opacity: 0.3"><div class="joystick-stick" id="stick-right"></div></div></div>
 
         <div id="skill-cluster">
+            <div id="btn-daily" class="btn btn-sub" ontouchstart="handleTouch('1', true, event)" ontouchend="handleTouch('1', false, event)">ULT<div class="btn-cd-overlay" id="cd-daily" style="display:none;"></div></div>
+            
             <div id="btn-dodge" class="btn" ontouchstart="handleTouch('shift', true, event)" ontouchend="handleTouch('shift', false, event)">DASH</div>
             <div id="btn-lmb" class="btn btn-main" ontouchstart="handleTouch('lmb', true, event)" ontouchend="handleTouch('lmb', false, event)">🔥</div>
             <div id="btn-rmb" class="btn btn-main" ontouchstart="handleTouch('rmb', true, event)" ontouchend="handleTouch('rmb', false, event)">🔦</div>
@@ -178,17 +179,12 @@ function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     
-    // AGGRESSIVE SCALING FIX: 
-    // Calculate the scale factor needed to fit the 1200 world width into the current screen width.
+    // AGGRESSIVE SCALING FIX (v6 logic)
     let calculatedScale = canvas.width / WORLD_W; 
-    
-    // Clamp the scale to be aggressive enough for small phones (max 0.6) but not too small (min 0.3)
     scaleFactor = Math.min(0.6, Math.max(0.3, calculatedScale));
     
-    // If the device is very wide (e.g., tablet), use height to prevent huge maps
     const currentAspect = canvas.width / canvas.height;
-    if (currentAspect > 2.0) { // e.g. very wide foldables or desktop
-        // Base scaling off a common visible height (e.g. 600 virtual units)
+    if (currentAspect > 2.0) { 
         const VIRTUAL_HEIGHT = 600; 
         scaleFactor = Math.min(0.6, Math.max(0.3, canvas.height / VIRTUAL_HEIGHT));
     }
@@ -199,14 +195,14 @@ resize();
 const joyLeft = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 };
 const joyRight = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 };
 const keys = { lmb: false, rmb: false, shift: false, q: false, e: false, r: false, tab: false, '1': false };
-let autoFire = false;
+let autoAttack = false; // Renamed from autoFire
 let vMouse = { x: GAME_CENTER_X, y: GAME_CENTER_Y - 200 }; 
 
-function toggleAutoFire() {
-    autoFire = !autoFire;
-    const btn = document.getElementById('toggle-autofire');
-    btn.innerText = `Auto-Fire: ${autoFire ? 'ON' : 'OFF'}`;
-    btn.classList.toggle('active', autoFire);
+function toggleAutoAttack() { // Updated function name
+    autoAttack = !autoAttack;
+    const btn = document.getElementById('toggle-autoattack');
+    btn.innerText = `Auto-Attack: ${autoAttack ? 'ON' : 'OFF'}`;
+    btn.classList.toggle('active', autoAttack);
 }
 
 function handleTouch(key, state, event) { 
@@ -241,7 +237,7 @@ document.addEventListener('touchmove', e => {
     e.preventDefault(); 
     for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
-        const STICK_MAX_DIST = 40; // Reduced max dist for smaller stick visuals
+        const STICK_MAX_DIST = 35; // Adjusted max dist for smaller stick visuals
 
         if (t.identifier === joyLeft.id) {
             const dx = t.clientX - joyLeft.originX; const dy = t.clientY - joyLeft.originY;
@@ -354,7 +350,8 @@ class Player extends Entity {
 
         let speed = PLAYER_SPEED;
         if (this.exhausted || this.slowTimer > 0) speed *= 0.5;
-        if (keys.rmb) speed *= SKILL_STATS.LANCE_OF_FAITH.slow;
+        // Check for RMB or Auto-Attack before applying slow
+        if (keys.rmb || autoAttack) speed *= SKILL_STATS.LANCE_OF_FAITH.slow; 
 
         if (this.isDodging) {
             this.dodgeTimer--;
@@ -446,7 +443,9 @@ function castSkills() {
     if (player.isCasting || player.isDodging || keys.tab) return;
     if (keys.shift) player.dodge();
 
-    if ((keys.lmb || (autoFire && joyRight.active)) && frame % SKILL_STATS.SACRED_FLAME.frames === 0) {
+    // Sacred Flame (LMB) logic
+    const isLMBActive = keys.lmb || (autoAttack && joyRight.active);
+    if (isLMBActive && frame % SKILL_STATS.SACRED_FLAME.frames === 0) {
         let dir = vMouse.sub(player.pos);
         projectiles.push({
             pos: new Vector(player.pos.x, player.pos.y),
@@ -455,8 +454,10 @@ function castSkills() {
         });
         player.ap = Math.min(MAX_AP, player.ap + 5);
     }
-
-    if (keys.rmb && frame % SKILL_STATS.LANCE_OF_FAITH.tick === 0) {
+    
+    // Lance of Faith (RMB) logic
+    const isRMBActive = keys.rmb || (autoAttack && joyRight.active);
+    if (isRMBActive && frame % SKILL_STATS.LANCE_OF_FAITH.tick === 0) {
         let aimDir = vMouse.sub(player.pos);
         let hit = false;
         enemies.forEach(e => {
@@ -689,7 +690,8 @@ function draw() {
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 1; ctx.stroke();
     }
     
-    if (keys.rmb) {
+    // Draw Lance of Faith line if RMB is active or Auto-Attack is on
+    if (keys.rmb || autoAttack) {
         ctx.beginPath(); ctx.moveTo(player.pos.x, player.pos.y); ctx.lineTo(vMouse.x, vMouse.y);
         ctx.strokeStyle = 'gold'; ctx.lineWidth = 4; ctx.stroke();
     }
