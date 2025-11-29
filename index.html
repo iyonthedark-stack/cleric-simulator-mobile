@@ -1,244 +1,179 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui"
-  >
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>Cleric Mobile v19 (iPhone Landscape Optimized)</title>
-  <style>
-    /* CORE RESET & MOBILE BASICS */
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #050505;
-      color: white;
-      font-family: 'Segoe UI', sans-serif;
-      overflow: hidden;
-      touch-action: none;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    #game-container {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      background: #111;
-      overflow: hidden;
-    }
-    canvas { display: block; width: 100%; height: 100%; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Cleric Mobile v18 (Auto-Fire & Opt Layout)</title>
+    <style>
+        /* CORE RESET */
+        body { margin: 0; padding: 0; background-color: #050505; color: white; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+        #game-container { position: relative; width: 100vw; height: 100vh; background: #111; overflow: hidden; }
+        canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
 
-    /* LANDSCAPE ENFORCEMENT */
-    #rotate-message {
-      display: none;
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: #000; z-index: 999;
-      flex-direction: column; justify-content: center; align-items: center; text-align: center;
-    }
-    @media screen and (orientation: portrait) {
-      #rotate-message { display: flex; font-size: 0.8em; }
-    }
+        /* ORIENTATION WARNING */
+        #rotate-message { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 999; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        @media screen and (orientation: portrait) { #rotate-message { display: flex; } }
 
-    /* UI OVERLAYS */
-    .ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        /* UI LAYERS */
+        .ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        
+        /* TOP HUD */
+        .hud-top { position: absolute; top: 0; left: 0; width: 100%; padding: 10px; box-sizing: border-box; display: flex; justify-content: space-between; align-items: flex-start; z-index: 10; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); }
+        .bars-container { width: 35%; max-width: 250px; }
+        .bar-wrap { position: relative; width: 100%; height: 8px; background: #333; margin-bottom: 4px; border-radius: 4px; border: 1px solid #555; overflow: hidden; }
+        .bar-fill { height: 100%; transition: width 0.1s linear; }
+        .bar-label { font-size: 9px; font-weight: bold; position: absolute; top: -1px; left: 4px; text-shadow: 1px 1px 1px black; z-index: 2; }
+        
+        .score-display { text-align: center; font-weight: bold; text-shadow: 0 2px 4px black; }
+        .timer-text { font-size: 20px; color: white; }
+        .score-text { font-size: 12px; color: gold; }
 
-    /* TOP BAR (Resources) */
-    .top-bar {
-      position: absolute; top: 0; left: 0; width: 100%; height: 42px;
-      background: linear-gradient(180deg, rgba(0,0,0,0.85), rgba(0,0,0,0));
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 0 10px; box-sizing: border-box; z-index: 10;
-    }
-    .res-cluster { display: flex; flex-direction: column; width: 36%; }
-    .bar-bg {
-      width: 100%; height: 6px; background: #333;
-      margin-bottom: 3px; border-radius: 3px; overflow: hidden; border: 1px solid #444;
-    }
-    .bar-fill { height: 100%; transition: width 0.1s; }
-    #hp-bar .bar-fill { background: #ff4444; }
-    #ap-bar .bar-fill { background: #ffd700; }
-    #stam-bar .bar-fill { background: #4caf50; }
-    #div-bar .bar-fill { background: #00bfff; }
-    .res-label { font-size: 9px; font-weight: bold; text-shadow: 1px 1px 1px black; margin-bottom: 2px; }
-    .score-box { text-align: center; font-size: 14px; color: gold; font-weight: bold; text-shadow: 0 2px 4px black; }
+        /* JOYSTICKS */
+        .joystick-zone { position: absolute; width: 140px; height: 140px; pointer-events: auto; z-index: 20; border-radius: 50%; }
+        /* Left: Bottom Left */
+        #stick-left-zone { left: 20px; bottom: 20px; }
+        /* Right: TOP Right (As Requested) */
+        #stick-right-zone { right: 20px; top: 60px; } 
 
-    /* JOYSTICKS */
-    .joystick-zone { position: absolute; width: 110px; height: 110px; pointer-events: auto; z-index: 20; }
-    #stick-left-zone { left: 12px; bottom: 32px; }
-    /* Raised higher, above buttons */
-    #stick-right-zone { right: 20px; bottom: 200px; pointer-events: auto; }
+        .joystick-base { width: 100px; height: 100px; background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center; }
+        .joystick-stick { width: 40px; height: 40px; background: rgba(255, 255, 255, 0.2); border-radius: 50%; position: absolute; box-shadow: 0 0 10px rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
+        
+        /* SKILL CLUSTER (Bottom Right) */
+        #skill-cluster { position: absolute; bottom: 15px; right: 15px; width: 220px; height: 160px; pointer-events: none; }
+        .btn { pointer-events: auto; position: absolute; border-radius: 50%; background: #222; border: 2px solid #555; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 14px; touch-action: manipulation; box-shadow: 0 4px 8px rgba(0,0,0,0.6); transition: transform 0.1s; }
+        .btn:active { transform: scale(0.9); border-color: white; background: #444; }
+        .btn-cd-overlay { position: absolute; top:0; left:0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #ff4444; font-size: 12px; z-index: 5; }
+        
+        /* Button Positioning (Arc Shape) */
+        .btn-xl { width: 60px; height: 60px; font-size: 10px; } /* Dodge */
+        .btn-lg { width: 50px; height: 50px; } /* Skills */
+        .btn-md { width: 45px; height: 45px; } /* Ult/Tab */
+        
+        /* Layout: Bottom Right Compact */
+        #btn-dodge { right: 0; bottom: 0; background: #333; border-color: #888; }
+        #btn-r     { right: 70px; bottom: 5px; background: #2d1515; color: #ff8888; }
+        #btn-e     { right: 55px; bottom: 65px; background: #2d1515; color: #ff8888; }
+        #btn-q     { right: 5px; bottom: 75px; background: #2d1515; color: #ff8888; }
+        
+        #btn-daily { right: 125px; bottom: 15px; background: #333300; border-color: gold; color: gold; box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+        #btn-tab   { right: 110px; bottom: 70px; background: #001a33; color: #00bfff; font-size: 16px; }
 
-    .joystick-base {
-      width: 78px; height: 78px; background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255,255,255,0.12); border-radius: 50%;
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      display: flex; justify-content: center; align-items: center;
-    }
-    .joystick-stick {
-      width: 32px; height: 32px; background: rgba(255, 255, 255, 0.35);
-      border-radius: 50%; position: absolute; box-shadow: 0 0 10px rgba(0,0,0,0.5);
-    }
+        /* BEAM TOGGLE (Replaces RMB) */
+        #btn-beam { right: 160px; bottom: 110px; width: 50px; height: 50px; background: #222; border: 2px solid #555; border-radius: 50%; position: absolute; pointer-events: auto; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 8px; color: #888; transition: all 0.2s; }
+        #btn-beam.active { background: #554400; border-color: gold; color: gold; box-shadow: 0 0 15px gold; }
+        #btn-beam span { font-size: 16px; display: block; margin-bottom: 2px; }
 
-    /* BUTTONS */
-    #skill-cluster { position: absolute; bottom: 10px; right: 10px; width: 210px; height: 210px; pointer-events: none; }
-    .btn {
-      pointer-events: auto; position: absolute; border-radius: 50%; background: #222; border: 2px solid #555;
-      display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 11px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.4); transition: transform 0.1s;
-    }
-    .btn:active { transform: scale(0.9) !important; border-color: white; background: #444; }
-    .btn-cd-overlay {
-      position: absolute; top:0; left:0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; justify-content: center; align-items: center;
-      color: #ff4444; font-size: 10px;
-    }
-
-    .btn-main { width: 48px; height: 48px; }
-    .btn-sub  { width: 42px; height: 42px; }
-    .btn-mini { width: 32px; height: 32px; }
-
-    /* Slightly increased spacing to reduce mis-taps */
-    #btn-dodge { width: 54px; height: 54px; bottom: 18px; right: 18px; background: #333; border-color: #999; z-index: 25; font-size: 10px; }
-    #btn-lmb   { bottom: 74px; right: 14px; background: #1a3a1a; color: #39FFAC; }
-    #btn-rmb   { bottom: 16px; right: 92px; background: #3a3a1a; color: #ffd700; }
-    #btn-q     { bottom: 114px; right: 10px; background: #2d1515; color: #ff8888; }
-    #btn-e     { bottom: 94px; right: 64px; background: #2d1515; color: #ff8888; }
-    #btn-r     { bottom: 54px; right: 118px; background: #2d1515; color: #ff8888; }
-    #btn-tab   { bottom: 136px; right: 100px; background: #001a33; color: #00bfff; }
-    #btn-daily {
-      width: 42px; height: 42px; bottom: 76px; right: 152px;
-      background: #333300; border: 2px solid gold; color: gold; position: absolute; pointer-events: auto;
-      z-index: 50; box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
-    }
-
-    /* MENUS */
-    #menu-overlay {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center;
-      z-index: 100; pointer-events: auto; backdrop-filter: blur(5px);
-    }
-    .menu-btn { padding: 12px 30px; background: #3498db; color: white; border: none; font-size: 18px; border-radius: 8px; margin: 10px; font-weight: bold; box-shadow: 0 4px #1b5e8a; }
-
-    /* TOGGLE (optional, kept minimal) */
-    .toggle-container { position: absolute; top: 6px; right: 10px; pointer-events: auto; z-index: 50; }
-    .toggle-btn { background: #222; color: #ccc; border: 1px solid #444; padding: 5px 10px; font-size: 11px; border-radius: 4px; text-transform: uppercase; letter-spacing: 1px; }
-    .toggle-btn.active { background: #ff5722; color: white; border-color: #fff; box-shadow: 0 0 8px #ff5722; }
-  </style>
+        /* MENU */
+        #menu-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; pointer-events: auto; backdrop-filter: blur(4px); }
+        .menu-btn { padding: 15px 40px; background: #3498db; color: white; border: none; font-size: 20px; border-radius: 30px; margin: 15px; font-weight: bold; box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4); }
+        .menu-info { color: #aaa; text-align: center; font-size: 12px; line-height: 1.5; margin-top: 20px; max-width: 400px; }
+    </style>
 </head>
 <body>
 
 <div id="rotate-message">
-  <h2 style="color: #ffd700;">Please Rotate Device</h2>
-  <p>This game requires Landscape mode.</p>
+    <h2 style="color: #ffd700;">Rotate to Landscape</h2>
 </div>
 
 <div id="game-container">
-  <canvas id="gameCanvas"></canvas>
+    <canvas id="gameCanvas"></canvas>
 
-  <div class="top-bar">
-    <div class="res-cluster">
-      <div class="res-label" style="color: #ff4444;">HP <span id="hp-val"></span></div>
-      <div class="bar-bg" id="hp-bar"><div class="bar-fill" style="width: 100%;"></div></div>
-      <div class="res-label" style="color: #4caf50;">STAM</div>
-      <div class="bar-bg" id="stam-bar"><div class="bar-fill" style="width: 100%;"></div></div>
-    </div>
-    <div class="score-box">
-      <div id="game-timer">0.0</div>
-      <div id="game-score" style="font-size: 10px; color: #aaa;">0</div>
-    </div>
-    <div class="res-cluster" style="align-items: flex-end;">
-      <div class="res-label" style="color: #00bfff;">DIVINITY</div>
-      <div class="bar-bg" id="div-bar"><div class="bar-fill" style="width: 100%;"></div></div>
-      <div class="res-label" style="color: #ffd700;">AP</div>
-      <div class="bar-bg" id="ap-bar"><div class="bar-fill" style="width: 0%;"></div></div>
-    </div>
-  </div>
+    <div class="hud-top">
+        <div class="bars-container">
+            <div class="bar-wrap" style="border-color: #ff4444;">
+                <span class="bar-label" style="color: #fff;">HP</span>
+                <div class="bar-fill" id="hp-bar" style="background: #ff4444; width: 100%;"></div>
+            </div>
+            <div class="bar-wrap" style="border-color: #4caf50;">
+                <span class="bar-label" style="color: #fff;">STAM</span>
+                <div class="bar-fill" id="stam-bar" style="background: #4caf50; width: 100%;"></div>
+            </div>
+        </div>
+        
+        <div class="score-display">
+            <div class="timer-text" id="game-timer">0.0</div>
+            <div class="score-text">SCORE: <span id="game-score">0</span></div>
+        </div>
 
-  <div class="ui-layer">
-    <div class="toggle-container">
-      <button id="toggle-autoattack" class="toggle-btn active" onclick="toggleAutoAttack()">Auto-Attack: ON</button>
-    </div>
-
-    <!-- Joysticks -->
-    <div id="stick-left-zone" class="joystick-zone">
-      <div class="joystick-base"><div class="joystick-stick" id="stick-left"></div></div>
-    </div>
-    <div id="stick-right-zone" class="joystick-zone">
-      <div class="joystick-base" style="opacity: 0.35"><div class="joystick-stick" id="stick-right"></div></div>
+        <div class="bars-container" style="align-items: flex-end; display: flex; flex-direction: column;">
+            <div class="bar-wrap" style="border-color: #00bfff;">
+                <span class="bar-label" style="color: #fff; right: 4px; left: auto;">DIVINITY</span>
+                <div class="bar-fill" id="div-bar" style="background: #00bfff; width: 100%;"></div>
+            </div>
+            <div class="bar-wrap" style="border-color: gold;">
+                <span class="bar-label" style="color: #000; right: 4px; left: auto;">AP</span>
+                <div class="bar-fill" id="ap-bar" style="background: gold; width: 0%;"></div>
+            </div>
+        </div>
     </div>
 
-    <!-- Skill cluster -->
-    <div id="skill-cluster">
-      <div id="btn-dodge" class="btn"
-           ontouchstart="handleTouch('shift', true, event)"
-           ontouchend="handleTouch('shift', false, event)">DASH</div>
+    <div class="ui-layer">
+        <div id="stick-left-zone" class="joystick-zone">
+            <div class="joystick-base"><div class="joystick-stick" id="stick-left"></div></div>
+        </div>
+        
+        <div id="stick-right-zone" class="joystick-zone">
+            <div class="joystick-base"><div class="joystick-stick" id="stick-right"></div></div>
+            <div style="position: absolute; bottom: -20px; width: 100%; text-align: center; font-size: 10px; color: #aaa; pointer-events: none;">AIM</div>
+        </div>
 
-      <div id="btn-lmb" class="btn btn-main"
-           ontouchstart="handleTouch('lmb', true, event)"
-           ontouchend="handleTouch('lmb', false, event)">🔥</div>
+        <div id="btn-beam" onclick="toggleBeam()">
+            <span>🔦</span>BEAM
+        </div>
 
-      <div id="btn-rmb" class="btn btn-main"
-           ontouchstart="handleTouch('rmb', true, event)"
-           ontouchend="handleTouch('rmb', false, event)">🔦</div>
-
-      <div id="btn-q" class="btn btn-sub"
-           ontouchstart="handleTouch('q', true, event)"
-           ontouchend="handleTouch('q', false, event)">⚡
-        <div class="btn-cd-overlay" id="cd-q" style="display:none;"></div>
-      </div>
-
-      <div id="btn-e" class="btn btn-sub"
-           ontouchstart="handleTouch('e', true, event)"
-           ontouchend="handleTouch('e', false, event)">💥
-        <div class="btn-cd-overlay" id="cd-e" style="display:none;"></div>
-      </div>
-
-      <div id="btn-r" class="btn btn-sub"
-           ontouchstart="handleTouch('r', true, event)"
-           ontouchend="handleTouch('r', false, event)">➕
-        <div class="btn-cd-overlay" id="cd-r" style="display:none;"></div>
-      </div>
-
-      <div id="btn-tab" class="btn btn-mini"
-           ontouchstart="handleTouch('tab', true, event)"
-           ontouchend="handleTouch('tab', false, event)">⚖️</div>
-
-      <div id="btn-daily" class="btn btn-sub"
-           ontouchstart="handleTouch('1', true, event)"
-           ontouchend="handleTouch('1', false, event)">ULT
-        <div class="btn-cd-overlay" id="cd-daily" style="display:none;"></div>
-      </div>
+        <div id="skill-cluster">
+            <div id="btn-dodge" class="btn btn-xl" ontouchstart="handleTouch('shift', true, event)" ontouchend="handleTouch('shift', false, event)">DODGE</div>
+            
+            <div id="btn-q" class="btn btn-lg" ontouchstart="handleTouch('q', true, event)" ontouchend="handleTouch('q', false, event)">⚡
+                <div class="btn-cd-overlay" id="cd-q" style="display:none;"></div>
+            </div>
+            
+            <div id="btn-e" class="btn btn-lg" ontouchstart="handleTouch('e', true, event)" ontouchend="handleTouch('e', false, event)">💥
+                <div class="btn-cd-overlay" id="cd-e" style="display:none;"></div>
+            </div>
+            
+            <div id="btn-r" class="btn btn-lg" ontouchstart="handleTouch('r', true, event)" ontouchend="handleTouch('r', false, event)">➕
+                <div class="btn-cd-overlay" id="cd-r" style="display:none;"></div>
+            </div>
+            
+            <div id="btn-daily" class="btn btn-md" ontouchstart="handleTouch('1', true, event)" ontouchend="handleTouch('1', false, event)">ULT
+                <div class="btn-cd-overlay" id="cd-daily" style="display:none;"></div>
+            </div>
+            
+            <div id="btn-tab" class="btn btn-md" ontouchstart="handleTouch('tab', true, event)" ontouchend="handleTouch('tab', false, event)">⚖️</div>
+        </div>
     </div>
-  </div>
 
-  <div id="menu-overlay">
-    <h1 id="menu-title" style="color: #ffd700; font-size: 28px; margin-bottom: 10px; text-shadow: 0 0 10px orange;">CLERIC MOBILE</h1>
-    <p id="menu-msg" style="color: #ddd; margin-bottom: 20px; font-size: 14px;">Survive for 2 Minutes.</p>
-    <button class="menu-btn" onclick="startGame()">START</button>
-    <div style="margin-top:20px; font-size: 11px; color: #666; text-align: center; line-height: 1.6;">
-      Left Stick: Move<br>Right Area: Aim<br>
-      Use Landscape Mode!
+    <div id="menu-overlay">
+        <h1 style="color: #ffd700; font-size: 32px; text-shadow: 0 0 20px rgba(255,215,0,0.5);">CLERIC MOBILE</h1>
+        <div id="end-msg" style="color: #fff; font-size: 18px; display:none; margin-bottom: 10px;"></div>
+        <button class="menu-btn" onclick="startGame()">START GAME</button> 
+        <div class="menu-info">
+            <b>AUTO-FIRE ENABLED</b><br>
+            Game automatically targets nearest enemy.<br>
+            Use <b>Top Right Joystick</b> to override aim manually.<br>
+            Toggle <b>BEAM</b> for heavy damage (Slows you).
+        </div>
     </div>
-  </div>
 </div>
 
 <script>
 /* ================================
-   LOGIC: VIRTUAL RESOLUTION
+   CONSTANTS & CONFIG
    ================================ */
-const WORLD_W = 1200;
-const WORLD_H = 1200;
+// The game logic runs on a fixed grid, visual scaling handles the rest.
+const WORLD_W = 1400;
+const WORLD_H = 1000;
 const GAME_CENTER_X = WORLD_W / 2;
 const GAME_CENTER_Y = WORLD_H / 2;
 const NODE_RADIUS = 350; 
 const GRID_SIZE = 100;
 const FPS = 60;
-const GAME_END_FRAME = 120 * FPS; // 2 minutes
+const GAME_END_FRAME = 120 * FPS; // 2 mins
 
-// Stats
+// Gameplay Stats
 const PLAYER_SPEED = 7; 
 const MAX_HP = 2000;
 const MAX_STAMINA = 100;
@@ -249,241 +184,215 @@ const DIVINITY_REGEN_PASSIVE = 2;
 const DIVINITY_REGEN_CHANNEL = 25;
 
 const SKILL_STATS = {
-  SACRED_FLAME: { frames: 5, damage: 180, speed: 18, color: '#39FFAC', ap: 5 },
-  LANCE_OF_FAITH: { tick: 10, damage: 110, range: 600, ap: 10, slow: 0.75 },
-  DAUNTING_LIGHT: { cast: 33, damage: 1600, radius: 110, cd: 120, div: 200, ap: 30 },
-  SUNBURST: { cast: 60, damage: 400, heal: 200, radius: 250, knock: 350, cd: 240 },
-  BASTION: { cast: 30, heal: 1000, radius: 180, cd: 240, div: 300 },
-  DAILY: { cast: 90, damage: 2800, radius: 200, stun: 120, cd: 100, hot: 100, hotDur: 600 },
-  CHANNEL: { regen: 25 }
+    SACRED_FLAME: { frames: 8, damage: 180, speed: 18, color: '#39FFAC', ap: 5 }, // Slower fire rate for auto-balance
+    LANCE_OF_FAITH: { tick: 10, damage: 110, range: 600, ap: 10, slow: 0.75 },
+    DAUNTING_LIGHT: { cast: 33, damage: 1600, radius: 110, cd: 120, div: 200, ap: 30 },
+    SUNBURST: { cast: 60, damage: 400, heal: 200, radius: 250, knock: 350, cd: 240 },
+    BASTION: { cast: 30, heal: 1000, radius: 180, cd: 240, div: 300 },
+    DAILY: { cast: 90, damage: 2800, radius: 200, stun: 120, cd: 100, hot: 100, hotDur: 600 },
 };
 
 /* ================================
-   ENGINE & INPUTS
+   ENGINE
    ================================ */
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 let scaleFactor = 1;
+let camX = 0, camY = 0;
 
 function resize() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-
-  // Smaller scale (nearly half of previous): better fit for iPhone landscape
-  let calculatedScale = canvas.width / WORLD_W; 
-  scaleFactor = Math.min(0.25, Math.max(0.15, calculatedScale));
-
-  const currentAspect = canvas.width / canvas.height;
-  if (currentAspect > 2.0) { 
-    const VIRTUAL_HEIGHT = 500; 
-    scaleFactor = Math.min(0.25, Math.max(0.15, canvas.height / VIRTUAL_HEIGHT));
-  }
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    // SCALE FIX: Scale based on height to ensure UI fits and field is visible
+    // We want to see roughly 900 units of game world vertically
+    const TARGET_VISIBLE_HEIGHT = 900;
+    scaleFactor = canvas.height / TARGET_VISIBLE_HEIGHT;
 }
 window.addEventListener('resize', resize);
 resize();
 
-const joyLeft  = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 };
+// Input State
+const joyLeft = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 };
 const joyRight = { x: 0, y: 0, active: false, id: null, originX: 0, originY: 0 };
-const keys = { lmb: false, rmb: false, shift: false, q: false, e: false, r: false, tab: false, '1': false };
-let autoAttack = true; // default ON for mobile
-let vMouse = { x: GAME_CENTER_X, y: GAME_CENTER_Y - 200 }; 
+const keys = { shift: false, q: false, e: false, r: false, tab: false, '1': false };
+let beamMode = false; // The RMB toggle
 
-function toggleAutoAttack() {
-  autoAttack = !autoAttack;
-  const btn = document.getElementById('toggle-autoattack');
-  btn.innerText = `Auto-Attack: ${autoAttack ? 'ON' : 'OFF'}`;
-  btn.classList.toggle('active', autoAttack);
+// Touch Handlers
+function handleTouch(key, state, e) {
+    if(e) { e.preventDefault(); e.stopPropagation(); }
+    keys[key] = state;
 }
 
-function handleTouch(key, state, event) { 
-  if (event) event.preventDefault(); 
-  keys[key] = state; 
+function toggleBeam() {
+    beamMode = !beamMode;
+    const btn = document.getElementById('btn-beam');
+    if(beamMode) btn.classList.add('active');
+    else btn.classList.remove('active');
 }
 
-/* Touch Logic (Passive:false allows preventDefault) */
+// Joystick Logic
 document.addEventListener('touchstart', e => {
-  for (let i = 0; i < e.changedTouches.length; i++) {
-    const t = e.changedTouches[i];
-    // Left Stick (left half, lower half)
-    if (t.clientX < window.innerWidth / 2 && t.clientY > window.innerHeight / 2) {
-      if (!joyLeft.active) {
-        joyLeft.id = t.identifier; joyLeft.active = true;
-        joyLeft.originX = t.clientX; joyLeft.originY = t.clientY;
-        updateJoyVisual('left', 0, 0);
-      }
-    // Right stick (entire right half, above buttons)
-    } else if (t.clientX > window.innerWidth / 2) {
-      if (!joyRight.active) {
-        joyRight.id = t.identifier; joyRight.active = true;
-        joyRight.originX = t.clientX; joyRight.originY = t.clientY;
-        updateJoyVisual('right', 0, 0);
-      }
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        const lx = t.clientX, ly = t.clientY;
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        // Check Zones based on screen quadrants
+        // Left Stick: Bottom-Left Quadrant
+        if (lx < width * 0.4 && ly > height * 0.5) {
+            if (!joyLeft.active) {
+                joyLeft.id = t.identifier; joyLeft.active = true;
+                joyLeft.originX = lx; joyLeft.originY = ly;
+                updateJoyVisual('left', 0, 0);
+            }
+        }
+        // Right Stick: Top-Right Quadrant (as requested)
+        // We define a generous zone in top right
+        else if (lx > width * 0.6 && ly < height * 0.6) {
+            if (!joyRight.active) {
+                joyRight.id = t.identifier; joyRight.active = true;
+                joyRight.originX = lx; joyRight.originY = ly;
+                updateJoyVisual('right', 0, 0);
+            }
+        }
     }
-  }
 }, {passive: false});
 
 document.addEventListener('touchmove', e => {
-  e.preventDefault(); 
-  for (let i = 0; i < e.changedTouches.length; i++) {
-    const t = e.changedTouches[i];
-    const STICK_MAX_DIST = 30; // tighter thumb radius
+    e.preventDefault(); 
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        const MAX_DIST = 40;
 
-    if (t.identifier === joyLeft.id) {
-      const dx = t.clientX - joyLeft.originX; const dy = t.clientY - joyLeft.originY;
-      const dist = Math.min(STICK_MAX_DIST, Math.sqrt(dx*dx + dy*dy));
-      const angle = Math.atan2(dy, dx);
-      joyLeft.x = Math.cos(angle) * (dist / STICK_MAX_DIST); joyLeft.y = Math.sin(angle) * (dist / STICK_MAX_DIST);
-      updateJoyVisual('left', Math.cos(angle)*dist, Math.sin(angle)*dist);
-    }
-    if (t.identifier === joyRight.id) {
-      const dx = t.clientX - joyRight.originX; const dy = t.clientY - joyRight.originY;
-      const dist = Math.min(STICK_MAX_DIST, Math.sqrt(dx*dx + dy*dy));
-      const angle = Math.atan2(dy, dx);
-      joyRight.x = Math.cos(angle) * (dist / STICK_MAX_DIST); joyRight.y = Math.sin(angle) * (dist / STICK_MAX_DIST);
-
-      if (dist > 4 && player) {
-        const aimReach = 450; 
-        if (Math.abs(joyRight.x) > 0.1 || Math.abs(joyRight.y) > 0.1) {
-          const dir = new Vector(joyRight.x, joyRight.y).normalize();
-          vMouse.x = player.pos.x + dir.x * aimReach;
-          vMouse.y = player.pos.y + dir.y * aimReach;
+        if (t.identifier === joyLeft.id) {
+            const dx = t.clientX - joyLeft.originX; const dy = t.clientY - joyLeft.originY;
+            const dist = Math.min(MAX_DIST, Math.sqrt(dx*dx + dy*dy));
+            const angle = Math.atan2(dy, dx);
+            joyLeft.x = Math.cos(angle) * (dist/MAX_DIST); 
+            joyLeft.y = Math.sin(angle) * (dist/MAX_DIST);
+            updateJoyVisual('left', Math.cos(angle)*dist, Math.sin(angle)*dist);
         }
-      }
-      updateJoyVisual('right', Math.cos(angle)*dist, Math.sin(angle)*dist);
+        if (t.identifier === joyRight.id) {
+            const dx = t.clientX - joyRight.originX; const dy = t.clientY - joyRight.originY;
+            const dist = Math.min(MAX_DIST, Math.sqrt(dx*dx + dy*dy));
+            const angle = Math.atan2(dy, dx);
+            joyRight.x = Math.cos(angle) * (dist/MAX_DIST); 
+            joyRight.y = Math.sin(angle) * (dist/MAX_DIST);
+            updateJoyVisual('right', Math.cos(angle)*dist, Math.sin(angle)*dist);
+        }
     }
-  }
 }, {passive: false});
 
 document.addEventListener('touchend', e => {
-  for (let i = 0; i < e.changedTouches.length; i++) {
-    const t = e.changedTouches[i];
-    if (t.identifier === joyLeft.id) { 
-      joyLeft.active = false; joyLeft.x = 0; joyLeft.y = 0; updateJoyVisual('left', 0, 0); 
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.identifier === joyLeft.id) { 
+            joyLeft.active = false; joyLeft.x = 0; joyLeft.y = 0; updateJoyVisual('left', 0, 0); 
+        }
+        if (t.identifier === joyRight.id) { 
+            joyRight.active = false; joyRight.x = 0; joyRight.y = 0; updateJoyVisual('right', 0, 0); 
+        }
     }
-    if (t.identifier === joyRight.id) { 
-      joyRight.active = false; joyRight.x = 0; joyRight.y = 0; updateJoyVisual('right', 0, 0); 
-    }
-  }
 });
 
 function updateJoyVisual(side, x, y) {
-  const el = document.getElementById(`stick-${side}`);
-  if(el) el.style.transform = `translate(${x}px, ${y}px)`;
+    const el = document.getElementById(`stick-${side}`);
+    if(el) el.style.transform = `translate(${x}px, ${y}px)`;
 }
 
 /* ================================
    GAME CLASSES
    ================================ */
 class Vector {
-  constructor(x, y) { this.x = x; this.y = y; }
-  add(v) { return new Vector(this.x + v.x, this.y + v.y); }
-  sub(v) { return new Vector(this.x - v.x, this.y - v.y); }
-  mult(n) { return new Vector(this.x * n, this.y * n); }
-  mag() { return Math.sqrt(this.x*this.x + this.y*this.y); }
-  normalize() { const m = this.mag(); return m === 0 ? new Vector(0,0) : new Vector(this.x/m, this.y/m); }
+    constructor(x, y) { this.x = x; this.y = y; }
+    add(v) { return new Vector(this.x + v.x, this.y + v.y); }
+    sub(v) { return new Vector(this.x - v.x, this.y - v.y); }
+    mult(n) { return new Vector(this.x * n, this.y * n); }
+    mag() { return Math.sqrt(this.x*this.x + this.y*this.y); }
+    normalize() { const m = this.mag(); return m === 0 ? new Vector(0,0) : new Vector(this.x/m, this.y/m); }
 }
 
-class Entity {
-  constructor(x, y, r, c) { this.pos = new Vector(x,y); this.r = r; this.c = c; this.dead = false; }
-  draw(ctx) { ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, this.r, 0, Math.PI*2); ctx.fillStyle = this.c; ctx.fill(); }
+class Player {
+    constructor() {
+        this.pos = new Vector(GAME_CENTER_X, GAME_CENTER_Y);
+        this.hp = MAX_HP; this.stamina = MAX_STAMINA; this.divinity = MAX_DIVINITY; this.ap = 0;
+        this.cooldowns = { q:0, e:0, r:0, daily:0 };
+        this.maxCd = { q: SKILL_STATS.DAUNTING_LIGHT.cd, e: SKILL_STATS.SUNBURST.cd, r: SKILL_STATS.BASTION.cd, daily: SKILL_STATS.DAILY.cd };
+        this.isDodging = false; this.dodgeTimer = 0;
+        this.isCasting = false; this.castTimer = 0; this.castCb = null;
+        this.exhausted = false;
+        this.aimDir = new Vector(1, 0); // Current facing/aim
+    }
+    update() {
+        // Regen
+        if (!this.isDodging) this.stamina = Math.min(MAX_STAMINA, this.stamina + STAMINA_REGEN);
+        if (keys.tab) this.divinity = Math.min(MAX_DIVINITY, this.divinity + DIVINITY_REGEN_CHANNEL);
+        else this.divinity = Math.min(MAX_DIVINITY, this.divinity + DIVINITY_REGEN_PASSIVE);
+
+        // Timers
+        if (this.stamina <= 0 && !this.exhausted) { this.exhausted = true; showFloat("TIRED", this.pos, 'red'); }
+        if (this.exhausted && this.stamina > 90) this.exhausted = false;
+        for(let k in this.cooldowns) if(this.cooldowns[k]>0) this.cooldowns[k]--;
+
+        // Casting State
+        if (this.isCasting) {
+            this.castTimer--;
+            if (this.castTimer <= 0) { if (this.castCb) this.castCb(); this.isCasting = false; }
+            return;
+        }
+
+        // Movement
+        let speed = PLAYER_SPEED;
+        if (this.exhausted) speed *= 0.5;
+        if (beamMode) speed *= SKILL_STATS.LANCE_OF_FAITH.slow; // Slow if Beam Toggle is ON
+
+        if (this.isDodging) {
+            this.dodgeTimer--;
+            if(this.dodgeTimer<=0) this.isDodging = false;
+            this.pos = this.pos.add(this.dodgeDir.mult(14));
+        } else if (!keys.tab) {
+            if (Math.abs(joyLeft.x) > 0.1 || Math.abs(joyLeft.y) > 0.1) {
+                this.pos.x += joyLeft.x * speed;
+                this.pos.y += joyLeft.y * speed;
+            }
+        }
+
+        // Bounds
+        this.pos.x = Math.max(50, Math.min(WORLD_W-50, this.pos.x));
+        this.pos.y = Math.max(50, Math.min(WORLD_H-50, this.pos.y));
+    }
 }
 
-class Enemy extends Entity {
-  constructor(x, y, type) {
-    super(x, y, 20, type==='MELEE'?'#f40':(type==='RANGED'?'#36f':'#0c0'));
-    this.type = type;
-    this.maxHp = type==='MELEE'?8000:(type==='RANGED'?3000:5000);
-    this.hp = this.maxHp;
-    this.speed = type==='MELEE'?2.5:(type==='RANGED'?4.5:3.5);
-    this.stun = 0;
-  }
-}
-
-class Player extends Entity {
-  constructor() {
-    super(GAME_CENTER_X, GAME_CENTER_Y, 20, '#00bfff');
-    this.hp = MAX_HP; this.stamina = MAX_STAMINA; this.divinity = MAX_DIVINITY; this.ap = 0;
-    this.cooldowns = { q:0, e:0, r:0, daily:0 };
-    this.maxCd = { q: SKILL_STATS.DAUNTING_LIGHT.cd, e: SKILL_STATS.SUNBURST.cd, r: SKILL_STATS.BASTION.cd, daily: SKILL_STATS.DAILY.cd };
-    this.isDodging = false; this.dodgeTimer = 0;
-    this.isCasting = false; this.castTimer = 0; this.castCb = null;
-    this.slowTimer = 0; this.poisonTimer = 0; this.hotTimer = 0;
-    this.exhausted = false;
-    this.dodgeDir = new Vector(0, -1); 
-  }
-  update() {
-    if (!this.isDodging) this.stamina = Math.min(MAX_STAMINA, this.stamina + STAMINA_REGEN);
-    if (keys.tab) this.divinity = Math.min(MAX_DIVINITY, this.divinity + DIVINITY_REGEN_CHANNEL);
-    else this.divinity = Math.min(MAX_DIVINITY, this.divinity + DIVINITY_REGEN_PASSIVE);
-
-    if (this.slowTimer > 0) this.slowTimer--;
-    if (this.poisonTimer > 0) {
-      if (this.poisonTimer % 60 === 0) { this.hp -= 50; showFloat("Poison!", this.pos, '#8f0'); }
-      this.poisonTimer--;
+class Enemy {
+    constructor(x, y, type) {
+        this.pos = new Vector(x,y);
+        this.type = type;
+        this.maxHp = type==='MELEE'?8000:(type==='RANGED'?3000:5000);
+        this.hp = this.maxHp;
+        this.speed = type==='MELEE'?2.5:(type==='RANGED'?4.5:3.5);
+        this.r = 25;
+        this.dead = false;
+        this.stun = 0;
+        this.col = type==='MELEE'?'#ff4400':(type==='RANGED'?'#3366ff':'#00cc00');
     }
-    if (this.hotTimer > 0) {
-      if (this.hotTimer % 60 === 0) { this.hp = Math.min(MAX_HP, this.hp + SKILL_STATS.DAILY.hot); showFloat("+100", this.pos, '#0f0'); }
-      this.hotTimer--;
+    update() {
+        if (this.stun > 0) { this.stun--; return; }
+        let toP = player.pos.sub(this.pos);
+        if (toP.mag() > 30) this.pos = this.pos.add(toP.normalize().mult(this.speed));
+        
+        // Simple attack logic
+        if (toP.mag() < 40 && frame % 60 === 0) {
+            player.hp -= 50;
+            showFloat("-50", player.pos, 'red');
+        }
     }
-
-    if (this.stamina <= 0 && !this.exhausted) { this.exhausted = true; showFloat("TIRED", this.pos, 'red'); }
-    if (this.exhausted && this.stamina > 90) this.exhausted = false;
-
-    for(let k in this.cooldowns) if(this.cooldowns[k]>0) this.cooldowns[k]--;
-
-    if (this.isCasting) {
-      this.castTimer--;
-      if (this.castTimer <= 0) { if (this.castCb) this.castCb(); this.isCasting = false; }
-      return; 
-    }
-
-    let speed = PLAYER_SPEED;
-    if (this.exhausted || this.slowTimer > 0) speed *= 0.5;
-    // RMB slow while active OR auto-attack on mobile
-    if (keys.rmb || autoAttack) speed *= SKILL_STATS.LANCE_OF_FAITH.slow; 
-
-    if (this.isDodging) {
-      this.dodgeTimer--;
-      if(this.dodgeTimer<=0) this.isDodging = false;
-      if (this.dodgeDir && this.dodgeDir.mag() > 0) {
-        this.pos = this.pos.add(this.dodgeDir.mult(14)); 
-      } else {
-        this.isDodging = false; 
-      }
-    } else if (!keys.tab) {
-      if (Math.abs(joyLeft.x) > 0.1 || Math.abs(joyLeft.y) > 0.1) {
-        this.pos.x += joyLeft.x * speed;
-        this.pos.y += joyLeft.y * speed;
-      }
-    }
-
-    this.pos.x = Math.max(20, Math.min(WORLD_W-20, this.pos.x));
-    this.pos.y = Math.max(20, Math.min(WORLD_H-20, this.pos.y));
-  }
-
-  dodge() {
-    if (this.stamina < 20 || this.isDodging || keys.tab || this.exhausted) return;
-    if (this.isCasting) { this.isCasting = false; showFloat("Canceled", this.pos, '#fff'); }
-    this.stamina -= 20;
-    this.isDodging = true;
-    this.dodgeTimer = 12;
-    
-    if (Math.abs(joyLeft.x) > 0.1 || Math.abs(joyLeft.y) > 0.1) {
-      this.dodgeDir = new Vector(joyLeft.x, joyLeft.y).normalize();
-    } else {
-      let aimDir = vMouse.sub(this.pos);
-      if (aimDir.mag() < 1) {
-        this.dodgeDir = this.dodgeDir.mult(-1).normalize(); 
-      } else {
-        this.dodgeDir = aimDir.normalize().mult(-1);
-      }
-    }
-  }
 }
 
 /* ================================
-   GLOBALS & LOGIC
+   LOGIC & MAIN LOOP
    ================================ */
 let player;
 let enemies = [];
@@ -496,311 +405,315 @@ let score = 0;
 let kills = 0;
 
 function startGame() {
-  // Do NOT prevent default — let click/touch fire on Safari
-  document.getElementById('menu-overlay').style.display = 'none';
-  player = new Player();
-  vMouse = { x: player.pos.x, y: player.pos.y - 300 }; 
-  enemies = [];
-  projectiles = [];
-  splats = [];
-  floats = [];
-  frame = 0;
-  score = 0;
-  kills = 0;
-  gameActive = true;
-  resize();
-  loop();
+    document.getElementById('menu-overlay').style.display = 'none';
+    player = new Player();
+    enemies = []; projectiles = []; splats = []; floats = [];
+    frame = 0; score = 0; kills = 0; gameActive = true;
+    toggleBeam(); if(beamMode) toggleBeam(); // Reset beam to off
+    loop();
+}
+
+function findNearestEnemy() {
+    let nearest = null;
+    let minD = Infinity;
+    enemies.forEach(e => {
+        let d = e.pos.sub(player.pos).mag();
+        if (d < minD) { minD = d; nearest = e; }
+    });
+    return { enemy: nearest, dist: minD };
+}
+
+function getAimTarget() {
+    // 1. Manual Joystick override
+    if (Math.abs(joyRight.x) > 0.1 || Math.abs(joyRight.y) > 0.1) {
+        return player.pos.add(new Vector(joyRight.x, joyRight.y).normalize().mult(400));
+    }
+    // 2. Auto-Aim Nearest
+    const n = findNearestEnemy();
+    if (n.enemy && n.dist < 800) {
+        return n.enemy.pos;
+    }
+    // 3. Default forward (movement dir) or right
+    if (Math.abs(joyLeft.x) > 0.1 || Math.abs(joyLeft.y) > 0.1) {
+        return player.pos.add(new Vector(joyLeft.x, joyLeft.y).normalize().mult(400));
+    }
+    return player.pos.add(new Vector(1, 0).mult(400));
 }
 
 function spawnMob() {
-  let type = Math.random() < 0.6 ? 'MELEE' : (Math.random() < 0.5 ? 'RANGED' : 'HEALER');
-  let x, y, d;
-  do {
-    x = Math.random() * WORLD_W;
-    y = Math.random() * WORLD_H;
-    d = new Vector(x,y).sub(new Vector(GAME_CENTER_X, GAME_CENTER_Y)).mag();
-  } while(d < NODE_RADIUS + 50);
-  enemies.push(new Enemy(x, y, type));
+    let type = Math.random() < 0.6 ? 'MELEE' : (Math.random() < 0.5 ? 'RANGED' : 'HEALER');
+    let x, y, d;
+    do {
+        x = Math.random() * WORLD_W;
+        y = Math.random() * WORLD_H;
+        d = new Vector(x,y).sub(new Vector(GAME_CENTER_X, GAME_CENTER_Y)).mag();
+    } while(d < NODE_RADIUS + 50);
+    enemies.push(new Enemy(x, y, type));
 }
 
 function showFloat(txt, pos, col) {
-  floats.push({txt:txt, pos:new Vector(pos.x, pos.y), col:col, life:60});
+    floats.push({txt:txt, pos:new Vector(pos.x, pos.y), col:col, life:60});
 }
 
-function castSkills() {
-  if (player.isCasting || player.isDodging || keys.tab) return;
-  if (keys.shift) player.dodge();
+function logic() {
+    frame++;
+    // Spawn
+    if (frame % 200 === 0 && enemies.length < 12) spawnMob();
 
-  // Sacred Flame (LMB) auto-fire
-  const isLMBActive = keys.lmb || autoAttack;
-  if (isLMBActive && frame % SKILL_STATS.SACRED_FLAME.frames === 0) {
-    let dir = vMouse.sub(player.pos);
-    projectiles.push({
-      pos: new Vector(player.pos.x, player.pos.y),
-      vel: dir.normalize().mult(SKILL_STATS.SACRED_FLAME.speed),
-      dmg: SKILL_STATS.SACRED_FLAME.damage, owner: 'player', life: 60, r: 8, col: SKILL_STATS.SACRED_FLAME.color
-    });
-    player.ap = Math.min(MAX_AP, player.ap + SKILL_STATS.SACRED_FLAME.ap);
-  }
-  
-  // Lance of Faith (RMB) auto-fire
-  const isRMBActive = keys.rmb || autoAttack;
-  if (isRMBActive && frame % SKILL_STATS.LANCE_OF_FAITH.tick === 0) {
-    let aimDir = vMouse.sub(player.pos);
-    enemies.forEach(e => {
-      let toE = e.pos.sub(player.pos);
-      let angle = Math.abs(Math.atan2(aimDir.y, aimDir.x) - Math.atan2(toE.y, toE.x));
-      if (toE.mag() < SKILL_STATS.LANCE_OF_FAITH.range && angle < 0.35) {
-        e.hp -= SKILL_STATS.LANCE_OF_FAITH.damage;
-        showFloat(SKILL_STATS.LANCE_OF_FAITH.damage, e.pos, '#ff0');
-        if(e.hp<=0) kill(e);
-        player.ap = Math.min(MAX_AP, player.ap + SKILL_STATS.LANCE_OF_FAITH.ap);
-      }
-    });
-  }
+    player.update();
+    const aimPos = getAimTarget();
 
-  // Q: Daunting Light
-  if (keys.q && player.cooldowns.q <= 0 && player.divinity >= SKILL_STATS.DAUNTING_LIGHT.div) {
-    player.divinity -= SKILL_STATS.DAUNTING_LIGHT.div;
-    player.cooldowns.q = player.maxCd.q;
-    player.isCasting = true;
-    player.castTimer = SKILL_STATS.DAUNTING_LIGHT.cast;
-    let tPos = new Vector(vMouse.x, vMouse.y);
-    player.castCb = () => {
-      splats.push({pos:tPos, r:SKILL_STATS.DAUNTING_LIGHT.radius, col:'gold', life:15});
-      enemies.forEach(e => {
-        if(e.pos.sub(tPos).mag() < SKILL_STATS.DAUNTING_LIGHT.radius) {
-          e.hp -= SKILL_STATS.DAUNTING_LIGHT.damage;
-          showFloat(SKILL_STATS.DAUNTING_LIGHT.damage+"!", e.pos, '#ff0');
-          if(e.hp<=0) kill(e);
-          player.ap = Math.min(MAX_AP, player.ap + SKILL_STATS.DAUNTING_LIGHT.ap);
+    // --- AUTO FIRE LOGIC ---
+    if (!player.isCasting && !player.isDodging && !keys.tab) {
+        
+        // RMB: BEAM MODE (Toggle)
+        if (beamMode) {
+            // Fires continuously while toggle is ON
+            if (frame % SKILL_STATS.LANCE_OF_FAITH.tick === 0) {
+                let hit = false;
+                let aimDir = aimPos.sub(player.pos);
+                enemies.forEach(e => {
+                    let toE = e.pos.sub(player.pos);
+                    let angle = Math.abs(Math.atan2(aimDir.y, aimDir.x) - Math.atan2(toE.y, toE.x));
+                    if (toE.mag() < SKILL_STATS.LANCE_OF_FAITH.range && angle < 0.3) {
+                        e.hp -= SKILL_STATS.LANCE_OF_FAITH.damage;
+                        showFloat(SKILL_STATS.LANCE_OF_FAITH.damage, e.pos, '#ff0');
+                        if(e.hp<=0) kill(e);
+                        hit = true;
+                    }
+                });
+                if(hit) player.ap = Math.min(MAX_AP, player.ap + 10);
+            }
+        } 
+        // LMB: SACRED FLAME (Auto-fire standard)
+        else {
+            if (frame % SKILL_STATS.SACRED_FLAME.frames === 0) {
+                // Only fire if there is a valid target or manual aim active
+                const n = findNearestEnemy();
+                const manualAim = (Math.abs(joyRight.x) > 0.1 || Math.abs(joyRight.y) > 0.1);
+                
+                if (manualAim || (n.enemy && n.dist < 700)) {
+                    let dir = aimPos.sub(player.pos);
+                    projectiles.push({
+                        pos: new Vector(player.pos.x, player.pos.y),
+                        vel: dir.normalize().mult(SKILL_STATS.SACRED_FLAME.speed),
+                        dmg: SKILL_STATS.SACRED_FLAME.damage, owner: 'player', life: 50, r: 8, col: SKILL_STATS.SACRED_FLAME.color
+                    });
+                    player.ap = Math.min(MAX_AP, player.ap + 5);
+                }
+            }
         }
-      });
-    };
-  }
+    }
 
-  // E: Sunburst
-  if (keys.e && player.cooldowns.e <= 0) {
-    player.cooldowns.e = player.maxCd.e;
-    player.hp = Math.min(MAX_HP, player.hp + SKILL_STATS.SUNBURST.heal);
-    splats.push({pos:player.pos, r:SKILL_STATS.SUNBURST.radius, col:'orange', life:10});
-    enemies.forEach(e => {
-      let dist = e.pos.sub(player.pos);
-      if(dist.mag() < SKILL_STATS.SUNBURST.radius) {
-        e.hp -= SKILL_STATS.SUNBURST.damage;
-        e.pos = e.pos.add(dist.normalize().mult(SKILL_STATS.SUNBURST.knock));
-        if(e.hp<=0) kill(e);
-      }
-    });
-  }
+    // --- ABILITIES ---
+    if (keys.shift && !player.isDodging && player.stamina > 20) {
+        player.isDodging = true; player.dodgeTimer = 12; player.stamina -= 20;
+        let d = new Vector(joyLeft.x, joyLeft.y);
+        if(d.mag() < 0.1) d = aimPos.sub(player.pos); // Dodge toward aim if not moving
+        player.dodgeDir = d.normalize();
+        showFloat("DODGE", player.pos, '#fff');
+    }
 
-  // R: Bastion
-  if (keys.r && player.cooldowns.r <= 0 && player.divinity >= SKILL_STATS.BASTION.div) {
-    player.divinity -= SKILL_STATS.BASTION.div;
-    player.cooldowns.r = player.maxCd.r;
-    player.isCasting = true;
-    player.castTimer = SKILL_STATS.BASTION.cast;
-    let tPos = new Vector(vMouse.x, vMouse.y);
-    player.castCb = () => {
-      splats.push({pos:tPos, r:SKILL_STATS.BASTION.radius, col:'#0f0', life:10});
-      if(player.pos.sub(tPos).mag() < SKILL_STATS.BASTION.radius) {
-        player.hp = Math.min(MAX_HP, player.hp + SKILL_STATS.BASTION.heal);
-        showFloat("+" + SKILL_STATS.BASTION.heal, player.pos, '#0f0');
-      }
-    };
-  }
-  
-  // Daily (1)
-  if (keys['1'] && player.cooldowns.daily <= 0 && player.ap >= MAX_AP) {
-    player.ap = 0;
-    player.cooldowns.daily = player.maxCd.daily;
-    player.hotTimer = SKILL_STATS.DAILY.hotDur;
-    let tPos = new Vector(vMouse.x, vMouse.y);
-    splats.push({pos:tPos, r:SKILL_STATS.DAILY.radius, col:'white', life:90}); 
-    setTimeout(() => {
-      enemies.forEach(e => {
-        if(e.pos.sub(tPos).mag() < SKILL_STATS.DAILY.radius) {
-          e.hp -= SKILL_STATS.DAILY.damage;
-          e.stun = SKILL_STATS.DAILY.stun;
-          if(e.hp<=0) kill(e);
+    const castSkill = (key, stat, logicFn) => {
+        if (keys[key] && player.cooldowns[key] <= 0) {
+            if (stat.div && player.divinity < stat.div) { showFloat("No Div", player.pos, '#888'); return; }
+            if (key === '1' && player.ap < MAX_AP) { showFloat("Need AP", player.pos, '#888'); return; }
+            
+            if (stat.div) player.divinity -= stat.div;
+            if (key === '1') player.ap = 0;
+            
+            player.cooldowns[key] = player.maxCd[key];
+            player.isCasting = true;
+            player.castTimer = stat.cast;
+            const tPos = new Vector(aimPos.x, aimPos.y); // Lock aim at start of cast
+            
+            player.castCb = () => logicFn(tPos);
         }
-      });
-    }, 1000); 
-  }
+    };
+
+    castSkill('q', SKILL_STATS.DAUNTING_LIGHT, (tPos) => {
+        splats.push({pos:tPos, r:SKILL_STATS.DAUNTING_LIGHT.radius, col:'gold', life:15});
+        enemies.forEach(e => {
+            if(e.pos.sub(tPos).mag() < SKILL_STATS.DAUNTING_LIGHT.radius) {
+                e.hp -= SKILL_STATS.DAUNTING_LIGHT.damage;
+                showFloat(SKILL_STATS.DAUNTING_LIGHT.damage+"!", e.pos, '#ff0');
+                if(e.hp<=0) kill(e);
+                player.ap = Math.min(MAX_AP, player.ap + 30);
+            }
+        });
+    });
+
+    castSkill('e', SKILL_STATS.SUNBURST, () => {
+        player.hp = Math.min(MAX_HP, player.hp + SKILL_STATS.SUNBURST.heal);
+        splats.push({pos:player.pos, r:SKILL_STATS.SUNBURST.radius, col:'orange', life:10});
+        enemies.forEach(e => {
+            let dist = e.pos.sub(player.pos);
+            if(dist.mag() < SKILL_STATS.SUNBURST.radius) {
+                e.hp -= SKILL_STATS.SUNBURST.damage;
+                e.pos = e.pos.add(dist.normalize().mult(SKILL_STATS.SUNBURST.knock));
+                if(e.hp<=0) kill(e);
+            }
+        });
+    });
+
+    castSkill('r', SKILL_STATS.BASTION, (tPos) => {
+        splats.push({pos:tPos, r:SKILL_STATS.BASTION.radius, col:'#0f0', life:10});
+        if(player.pos.sub(tPos).mag() < SKILL_STATS.BASTION.radius) {
+            player.hp = Math.min(MAX_HP, player.hp + SKILL_STATS.BASTION.heal);
+            showFloat("+"+SKILL_STATS.BASTION.heal, player.pos, '#0f0');
+        }
+    });
+
+    castSkill('1', SKILL_STATS.DAILY, (tPos) => {
+        splats.push({pos:tPos, r:SKILL_STATS.DAILY.radius, col:'white', life:90}); 
+        setTimeout(() => {
+             enemies.forEach(e => {
+                if(e.pos.sub(tPos).mag() < SKILL_STATS.DAILY.radius) {
+                    e.hp -= SKILL_STATS.DAILY.damage;
+                    e.stun = SKILL_STATS.DAILY.stun;
+                    if(e.hp<=0) kill(e);
+                }
+            });
+        }, 800); 
+    });
+
+    // Updates
+    enemies.forEach(e => e.update());
+    
+    projectiles.forEach(p => {
+        p.pos = p.pos.add(p.vel);
+        p.life--;
+        enemies.forEach(e => {
+            if(!e.dead && e.pos.sub(p.pos).mag() < e.r + p.r) {
+                e.hp -= p.dmg;
+                p.life = 0;
+                showFloat(p.dmg, e.pos, '#ff0');
+                if(e.hp<=0) kill(e);
+            }
+        });
+    });
+
+    projectiles = projectiles.filter(p => p.life > 0);
+    enemies = enemies.filter(e => !e.dead);
+    splats = splats.filter(s => s.life-- > 0);
+    floats = floats.filter(f => { f.pos.y -= 1; return f.life-- > 0; });
+
+    if (player.pos.sub(new Vector(GAME_CENTER_X, GAME_CENTER_Y)).mag() < NODE_RADIUS) score++;
+    
+    if (player.hp <= 0) endGame("DEFEAT");
+    if (frame >= GAME_END_FRAME) endGame("VICTORY");
 }
 
-function kill(e) {
-  if(e.dead) return;
-  e.dead = true;
-  kills++;
-  player.ap = Math.min(MAX_AP, player.ap + 50);
+function kill(e) { e.dead = true; kills++; player.ap = Math.min(MAX_AP, player.ap + 50); }
+function endGame(msg) {
+    gameActive = false;
+    document.getElementById('menu-overlay').style.display = 'flex';
+    document.getElementById('end-msg').style.display = 'block';
+    document.getElementById('end-msg').innerText = `${msg} - Score: ${score}`;
 }
 
 function loop() {
-  if(!gameActive) return;
-  frame++;
-  
-  // Faster/mobile-friendly spawn cadence
-  if (frame % 120 === 0 && enemies.length < 6) spawnMob();
-
-  player.update();
-  castSkills();
-
-  enemies.forEach(e => {
-    if(e.dead) return;
-    if(e.stun && e.stun > 0) { e.stun--; return; }
-    
-    let toP = player.pos.sub(e.pos);
-    if (toP.mag() > 30) e.pos = e.pos.add(toP.normalize().mult(e.speed));
-    
-    if (toP.mag() < 40 && frame % 60 === 0) {
-      player.hp -= 50;
-      showFloat("-50", player.pos, 'red');
-    }
-    if (e.type !== 'MELEE' && frame % 120 === 0 && toP.mag() < 500) {
-      projectiles.push({
-        pos: new Vector(e.pos.x, e.pos.y),
-        vel: toP.normalize().mult(6),
-        dmg: 100, owner: 'enemy', life: 100, r: 6, col: '#f0f'
-      });
-    }
-  });
-
-  projectiles.forEach(p => {
-    p.pos = p.pos.add(p.vel);
-    p.life--;
-    if(p.owner === 'player') {
-      enemies.forEach(e => {
-        if(!e.dead && e.pos.sub(p.pos).mag() < e.r + p.r) {
-          e.hp -= p.dmg;
-          p.life = 0;
-          showFloat(p.dmg, e.pos, '#ff0');
-          if(e.hp<=0) kill(e);
-        }
-      });
-    } else {
-      if(!player.isDodging && player.pos.sub(p.pos).mag() < 20 + p.r) {
-        player.hp -= p.dmg;
-        p.life = 0;
-        showFloat("-"+p.dmg, player.pos, 'red');
-      }
-    }
-  });
-
-  projectiles = projectiles.filter(p => p.life > 0);
-  enemies = enemies.filter(e => !e.dead);
-  splats = splats.filter(s => s.life-- > 0);
-  floats = floats.filter(f => { f.pos.y -= 1; return f.life-- > 0; });
-
-  let onNode = player.pos.sub(new Vector(GAME_CENTER_X, GAME_CENTER_Y)).mag() < NODE_RADIUS;
-  if (onNode) score += 1; 
-  
-  if (player.hp <= 0) gameOver("DIED");
-  if (frame >= GAME_END_FRAME) gameOver("VICTORY");
-
-  draw();
-  updateUI();
-  requestAnimationFrame(loop);
+    if(!gameActive) return;
+    logic();
+    draw();
+    updateUI();
+    requestAnimationFrame(loop);
 }
 
-function gameOver(msg) {
-  gameActive = false;
-  document.getElementById('menu-overlay').style.display = 'flex';
-  document.getElementById('menu-title').innerText = msg;
-  document.getElementById('menu-msg').innerText = `Score: ${score} | Kills: ${kills}`;
+/* ================================
+   RENDER & UI
+   ================================ */
+function draw() {
+    ctx.fillStyle = '#111'; ctx.fillRect(0,0,canvas.width, canvas.height);
+    
+    ctx.save();
+    // Camera Logic: Center on player
+    let tx = canvas.width/2 - player.pos.x * scaleFactor;
+    let ty = canvas.height/2 - player.pos.y * scaleFactor;
+    
+    // Clamp camera
+    const minX = canvas.width - WORLD_W * scaleFactor;
+    const minY = canvas.height - WORLD_H * scaleFactor;
+    tx = Math.min(0, Math.max(minX, tx));
+    ty = Math.min(0, Math.max(minY, ty));
+
+    ctx.translate(tx, ty);
+    ctx.scale(scaleFactor, scaleFactor);
+
+    // World Grid
+    ctx.strokeStyle = '#222'; ctx.lineWidth = 2;
+    for(let x=0; x<=WORLD_W; x+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x, WORLD_H); ctx.stroke(); }
+    for(let y=0; y<=WORLD_H; y+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(WORLD_W, y); ctx.stroke(); }
+    
+    // Node
+    ctx.beginPath(); ctx.arc(GAME_CENTER_X, GAME_CENTER_Y, NODE_RADIUS, 0, Math.PI*2);
+    ctx.strokeStyle = '#333'; ctx.lineWidth=4; ctx.stroke();
+    ctx.fillStyle = 'rgba(0,255,100,0.05)'; ctx.fill();
+
+    // Splats
+    splats.forEach(s => {
+        ctx.beginPath(); ctx.arc(s.pos.x, s.pos.y, s.r, 0, Math.PI*2);
+        ctx.fillStyle = s.col; ctx.globalAlpha = 0.4; ctx.fill(); ctx.globalAlpha = 1;
+    });
+
+    // Enemies
+    enemies.forEach(e => {
+        ctx.fillStyle = e.col;
+        ctx.beginPath(); ctx.arc(e.pos.x, e.pos.y, e.r, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = 'red'; ctx.fillRect(e.pos.x-15, e.pos.y-35, 30*(e.hp/e.maxHp), 4);
+    });
+
+    // Player
+    ctx.fillStyle = '#00bfff';
+    ctx.beginPath(); ctx.arc(player.pos.x, player.pos.y, 20, 0, Math.PI*2); ctx.fill();
+    if (keys.tab) { ctx.strokeStyle = '#fff'; ctx.lineWidth=2; ctx.stroke(); }
+
+    // Aim Indicator
+    const aim = getAimTarget();
+    
+    // Projectiles
+    projectiles.forEach(p => {
+        ctx.beginPath(); ctx.arc(p.pos.x, p.pos.y, p.r, 0, Math.PI*2);
+        ctx.fillStyle = p.col; ctx.fill();
+    });
+
+    // Beam Visual
+    if(beamMode && !player.isCasting && !player.isDodging && !keys.tab) {
+        ctx.beginPath(); ctx.moveTo(player.pos.x, player.pos.y); ctx.lineTo(aim.x, aim.y);
+        ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)'; ctx.lineWidth = 4; ctx.stroke();
+    } else if (!beamMode) {
+        // Subtle aim line
+         ctx.beginPath(); ctx.moveTo(player.pos.x, player.pos.y); ctx.lineTo(aim.x, aim.y);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.lineWidth = 1; ctx.stroke();
+    }
+
+    floats.forEach(f => {
+        ctx.fillStyle = f.col; ctx.font = "bold 24px Arial"; 
+        ctx.fillText(f.txt, f.pos.x, f.pos.y);
+    });
+
+    ctx.restore();
 }
 
 function updateUI() {
-  document.getElementById('hp-bar').querySelector('div').style.width = (player.hp/MAX_HP*100)+'%';
-  document.getElementById('hp-val').innerText = Math.ceil(player.hp);
-  document.getElementById('ap-bar').querySelector('div').style.width = (player.ap/MAX_AP*100)+'%';
-  document.getElementById('stam-bar').querySelector('div').style.width = (player.stamina/MAX_STAMINA*100)+'%';
-  document.getElementById('div-bar').querySelector('div').style.width = (player.divinity/MAX_DIVINITY*100)+'%';
-  document.getElementById('game-timer').innerText = (frame/60).toFixed(1);
-  document.getElementById('game-score').innerText = score;
-  
-  const setCD = (id, cur, max) => {
-    const el = document.getElementById(id);
-    if(cur > 0) { el.style.display = 'flex'; el.innerText = (cur/60).toFixed(1); }
-    else { el.style.display = 'none'; }
-  };
-  setCD('cd-q', player.cooldowns.q, player.maxCd.q);
-  setCD('cd-e', player.cooldowns.e, player.maxCd.e);
-  setCD('cd-r', player.cooldowns.r, player.maxCd.r);
-  setCD('cd-daily', player.cooldowns.daily, player.maxCd.daily);
-  
-  document.getElementById('btn-tab').style.borderColor = keys.tab ? 'white' : '#555';
-}
-
-function draw() {
-  ctx.fillStyle = '#111'; ctx.fillRect(0,0,canvas.width, canvas.height);
-  
-  ctx.save();
-  ctx.translate(canvas.width/2, canvas.height/2);
-  ctx.scale(scaleFactor, scaleFactor);
-  ctx.translate(-GAME_CENTER_X, -GAME_CENTER_Y);
-
-  // World Grid
-  ctx.strokeStyle = '#222'; ctx.lineWidth = 2;
-  for(let x=0; x<=WORLD_W; x+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x, WORLD_H); ctx.stroke(); }
-  for(let y=0; y<=WORLD_H; y+=GRID_SIZE) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(WORLD_W, y); ctx.stroke(); }
-  ctx.strokeStyle = '#500'; ctx.lineWidth = 5; ctx.strokeRect(0,0,WORLD_W, WORLD_H);
-
-  // Node
-  ctx.beginPath();
-  ctx.arc(GAME_CENTER_X, GAME_CENTER_Y, NODE_RADIUS, 0, Math.PI*2);
-  ctx.strokeStyle = '#333'; ctx.lineWidth=2; ctx.stroke();
-  ctx.fillStyle = 'rgba(0,255,100,0.05)'; ctx.fill();
-
-  splats.forEach(s => {
-    ctx.beginPath(); ctx.arc(s.pos.x, s.pos.y, s.r, 0, Math.PI*2);
-    ctx.fillStyle = s.col; ctx.globalAlpha = 0.4; ctx.fill(); ctx.globalAlpha = 1;
-  });
-
-  enemies.forEach(e => {
-    e.draw(ctx);
-    ctx.fillStyle = 'red'; ctx.fillRect(e.pos.x-15, e.pos.y-30, 30*(e.hp/e.maxHp), 4);
-  });
-
-  player.draw(ctx);
-  if(keys.tab) {
-    ctx.strokeStyle = '#00bfff'; ctx.beginPath(); ctx.arc(player.pos.x, player.pos.y, 30, 0, Math.PI*2); ctx.stroke();
-  }
-  
-  projectiles.forEach(p => {
-    ctx.beginPath(); ctx.arc(p.pos.x, p.pos.y, p.r, 0, Math.PI*2);
-    ctx.fillStyle = p.col; ctx.fill();
-  });
-
-  // Aim marker when firing/aiming/auto
-  if(joyRight.active || keys.q || keys.r || keys.lmb || keys.rmb || autoAttack) {
-    ctx.beginPath();
-    ctx.arc(vMouse.x, vMouse.y, 10, 0, Math.PI*2);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)'; ctx.lineWidth = 2; ctx.stroke();
+    document.getElementById('hp-bar').style.width = (player.hp/MAX_HP*100)+'%';
+    document.getElementById('stam-bar').style.width = (player.stamina/MAX_STAMINA*100)+'%';
+    document.getElementById('div-bar').style.width = (player.divinity/MAX_DIVINITY*100)+'%';
+    document.getElementById('ap-bar').style.width = (player.ap/MAX_AP*100)+'%';
+    document.getElementById('game-timer').innerText = (frame/60).toFixed(1);
+    document.getElementById('game-score').innerText = score;
     
-    ctx.beginPath(); ctx.moveTo(player.pos.x, player.pos.y); ctx.lineTo(vMouse.x, vMouse.y);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)'; ctx.lineWidth = 1; ctx.stroke();
-  }
-  
-  // Draw Lance of Faith beam when RMB or autoAttack
-  if (keys.rmb || autoAttack) {
-    ctx.beginPath(); ctx.moveTo(player.pos.x, player.pos.y); ctx.lineTo(vMouse.x, vMouse.y);
-    ctx.strokeStyle = 'gold'; ctx.lineWidth = 4; ctx.stroke();
-  }
-
-  // Floating text
-  floats.forEach(f => {
-    ctx.fillStyle = f.col; ctx.font = "bold 26px Arial"; 
-    ctx.fillText(f.txt, f.pos.x - 10, f.pos.y);
-  });
-
-  ctx.restore();
-
-  // Exhaustion tint overlay (global)
-  if (player && player.exhausted) {
-    ctx.fillStyle = 'rgba(255,0,0,0.08)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
+    const setCD = (id, cur, max) => {
+        const el = document.getElementById(id);
+        if(cur > 0) { el.style.display = 'flex'; el.innerText = (cur/60).toFixed(1); }
+        else { el.style.display = 'none'; }
+    };
+    setCD('cd-q', player.cooldowns.q, player.maxCd.q);
+    setCD('cd-e', player.cooldowns.e, player.maxCd.e);
+    setCD('cd-r', player.cooldowns.r, player.maxCd.r);
+    setCD('cd-daily', player.cooldowns.daily, player.maxCd.daily);
+    
+    document.getElementById('btn-tab').style.borderColor = keys.tab ? 'white' : '#555';
 }
 </script>
 </body>
